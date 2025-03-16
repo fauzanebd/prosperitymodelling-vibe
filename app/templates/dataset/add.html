@@ -1,0 +1,90 @@
+{% extends 'base.html' %} {% block title %}Add New Data - Prosperity Analysis{%
+endblock %} {% block content %}
+<div class="card">
+  <div class="card-header bg-primary text-white">
+    <h4 class="mb-0">Add New Data</h4>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('dataset.add') }}">
+      <div class="mb-3">
+        <label for="indicator" class="form-label">Indicator</label>
+        <select class="form-select" id="indicator" name="indicator" required>
+          <option value="" selected disabled>Select an indicator</option>
+          {% for indicator in indicators %}
+          <option value="{{ indicator }}">
+            {{ indicator|replace('_', ' ')|title }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="provinsi" class="form-label">Province</label>
+        <input
+          type="text"
+          class="form-control"
+          id="provinsi"
+          name="provinsi"
+          required
+        />
+        <div class="form-text">
+          Enter the province name exactly as it appears in the dataset.
+        </div>
+      </div>
+      <div class="mb-3">
+        <label for="year" class="form-label">Year</label>
+        <select class="form-select" id="year" name="year" required>
+          <option value="" selected disabled>Select a year</option>
+          {% for year in range(2019, 2024) %}
+          <option value="{{ year }}">{{ year }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="value" class="form-label">Value</label>
+        <input
+          type="number"
+          class="form-control"
+          id="value"
+          name="value"
+          step="0.01"
+          required
+        />
+        <div class="form-text">
+          Enter the raw value for the indicator. It will be preprocessed
+          automatically.
+        </div>
+      </div>
+      <div class="d-flex justify-content-between">
+        <a href="{{ url_for('dataset.index') }}" class="btn btn-secondary"
+          >Cancel</a
+        >
+        <button type="submit" class="btn btn-primary">Add Data</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  // Fetch provinces for autocomplete
+  document.addEventListener("DOMContentLoaded", function () {
+    fetch('{{ url_for("dataset.get_provinces") }}')
+      .then((response) => response.json())
+      .then((provinces) => {
+        const provinsiInput = document.getElementById("provinsi");
+        const datalist = document.createElement("datalist");
+        datalist.id = "provinces-list";
+
+        provinces.forEach((province) => {
+          const option = document.createElement("option");
+          option.value = province;
+          datalist.appendChild(option);
+        });
+
+        document.body.appendChild(datalist);
+        provinsiInput.setAttribute("list", "provinces-list");
+      })
+      .catch((error) => console.error("Error fetching provinces:", error));
+  });
+</script>
+{% endblock %} {% endblock %}

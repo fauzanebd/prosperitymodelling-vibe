@@ -1,0 +1,48 @@
+{% extends 'base.html' %} {% block title %}Edit Data - Prosperity Analysis{%
+endblock %} {% block content %}
+<div class="card">
+  <div class="card-header bg-primary text-white">
+    <h4 class="mb-0">Edit Data</h4>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info">
+      <h5>Editing data for:</h5>
+      <p class="mb-1">
+        <strong>Indicator:</strong> {{ indicator|replace('_', ' ')|title }}
+      </p>
+      <p class="mb-1"><strong>Province:</strong> {{ data.provinsi }}</p>
+      <p class="mb-0"><strong>Year:</strong> {{ data.year }}</p>
+    </div>
+
+    <form
+      method="POST"
+      action="{{ url_for('dataset.edit', indicator=indicator, id=data.id) }}"
+    >
+      <div class="mb-3">
+        <label for="value" class="form-label">Value</label>
+        <input
+          type="number"
+          class="form-control"
+          id="value"
+          name="value"
+          step="0.01"
+          value="{{ data.value }}"
+          required
+        />
+        <div class="form-text">
+          Enter the raw value for the indicator. It will be preprocessed
+          automatically.
+        </div>
+      </div>
+      <div class="d-flex justify-content-between">
+        <a
+          href="{{ url_for('dataset.index', indicator=indicator) }}"
+          class="btn btn-secondary"
+          >Cancel</a
+        >
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

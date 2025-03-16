@@ -1,0 +1,157 @@
+{% extends 'base.html' %} {% block title %}Dashboard - Prosperity Analysis{%
+endblock %} {% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">Prosperity Analysis Dashboard</h4>
+      </div>
+      <div class="card-body">
+        <p class="lead">
+          Welcome to the Prosperity Analysis Dashboard. This application allows
+          you to analyze regional prosperity based on various socioeconomic
+          indicators.
+        </p>
+
+        <div class="row mt-4">
+          <div class="col-md-4">
+            <div class="card mb-3">
+              <div class="card-body text-center">
+                <i class="fas fa-database fa-3x mb-3 text-primary"></i>
+                <h5 class="card-title">Dataset Management</h5>
+                <p class="card-text">
+                  View, add, and edit indicator data for different regions.
+                </p>
+                <a href="{{ url_for('dataset.index') }}" class="btn btn-primary"
+                  >Go to Dataset</a
+                >
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card mb-3">
+              <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x mb-3 text-success"></i>
+                <h5 class="card-title">Data Visualization</h5>
+                <p class="card-text">
+                  Visualize indicator data and trends over time.
+                </p>
+                <a
+                  href="{{ url_for('visualization.data_visualization') }}"
+                  class="btn btn-success"
+                  >View Visualizations</a
+                >
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card mb-3">
+              <div class="card-body text-center">
+                <i class="fas fa-brain fa-3x mb-3 text-info"></i>
+                <h5 class="card-title">Model Performance</h5>
+                <p class="card-text">
+                  Compare performance of different machine learning models.
+                </p>
+                <a
+                  href="{{ url_for('visualization.model_performance') }}"
+                  class="btn btn-info"
+                  >View Models</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if prediction_stats %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <h4 class="mb-0">Prosperity Classification Results</h4>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="card bg-success text-white mb-3">
+              <div class="card-body text-center">
+                <h5 class="card-title">Daerah Sejahtera</h5>
+                <h2 class="display-4">
+                  {{ prediction_stats.classes.Sejahtera.count if 'Sejahtera' in
+                  prediction_stats.classes else 0 }}
+                </h2>
+                <p class="lead">
+                  {{
+                  "%.1f"|format(prediction_stats.classes.Sejahtera.percentage)
+                  if 'Sejahtera' in prediction_stats.classes else 0 }}%
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-warning text-dark mb-3">
+              <div class="card-body text-center">
+                <h5 class="card-title">Daerah Menengah</h5>
+                <h2 class="display-4">
+                  {{ prediction_stats.classes.Menengah.count if 'Menengah' in
+                  prediction_stats.classes else 0 }}
+                </h2>
+                <p class="lead">
+                  {{ "%.1f"|format(prediction_stats.classes.Menengah.percentage)
+                  if 'Menengah' in prediction_stats.classes else 0 }}%
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-danger text-white mb-3">
+              <div class="card-body text-center">
+                <h5 class="card-title">Daerah Tidak Sejahtera</h5>
+                <h2 class="display-4">
+                  {{ prediction_stats.classes['Tidak Sejahtera'].count if 'Tidak
+                  Sejahtera' in prediction_stats.classes else 0 }}
+                </h2>
+                <p class="lead">
+                  {{ "%.1f"|format(prediction_stats.classes['Tidak
+                  Sejahtera'].percentage) if 'Tidak Sejahtera' in
+                  prediction_stats.classes else 0 }}%
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="text-center mt-3">
+          <p class="lead">
+            Total regions evaluated: {{ prediction_stats.total }}
+          </p>
+          <p>
+            Based on the latest model: {{ latest_model.model_type|capitalize if
+            latest_model else 'None' }} ({{
+            latest_model.created_at.strftime('%Y-%m-%d %H:%M') if latest_model
+            else 'N/A' }})
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-warning text-dark">
+        <h4 class="mb-0">No Prediction Data Available</h4>
+      </div>
+      <div class="card-body">
+        <p class="lead">
+          There are no prediction results available yet. Please add indicator
+          data and train a model to see results.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %} {% endblock %}

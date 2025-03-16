@@ -1,0 +1,158 @@
+{% extends 'base.html' %} {% block title %}Model Performance - Prosperity
+Analysis{% endblock %} {% block content %}
+<div class="card">
+  <div class="card-header bg-primary text-white">
+    <h4 class="mb-0">Model Performance Comparison</h4>
+  </div>
+  <div class="card-body">
+    <!-- Model Selection -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Select Model Type</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-12">
+                <div class="btn-group w-100" role="group">
+                  <a
+                    href="{{ url_for('visualization.model_performance', model_type='random_forest') }}"
+                    class="btn btn-{% if model_type == 'random_forest' %}primary{% else %}outline-primary{% endif %} btn-lg"
+                  >
+                    <i class="fas fa-tree"></i> Random Forest
+                  </a>
+                  <a
+                    href="{{ url_for('visualization.model_performance', model_type='logistic_regression') }}"
+                    class="btn btn-{% if model_type == 'logistic_regression' %}primary{% else %}outline-primary{% endif %} btn-lg"
+                  >
+                    <i class="fas fa-chart-line"></i> Logistic Regression
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if selected_model %}
+    <!-- Performance Metrics -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Performance Metrics</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3">
+                <div class="card text-center mb-3">
+                  <div class="card-body">
+                    <h5 class="card-title">Accuracy</h5>
+                    <h2 class="display-4">
+                      {{ "%.2f"|format(metrics.accuracy * 100) }}%
+                    </h2>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card text-center mb-3">
+                  <div class="card-body">
+                    <h5 class="card-title">Precision</h5>
+                    <h2 class="display-4">
+                      {{ "%.2f"|format(metrics.precision * 100) }}%
+                    </h2>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card text-center mb-3">
+                  <div class="card-body">
+                    <h5 class="card-title">Recall</h5>
+                    <h2 class="display-4">
+                      {{ "%.2f"|format(metrics.recall * 100) }}%
+                    </h2>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card text-center mb-3">
+                  <div class="card-body">
+                    <h5 class="card-title">F1 Score</h5>
+                    <h2 class="display-4">
+                      {{ "%.2f"|format(metrics.f1_score * 100) }}%
+                    </h2>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="card text-center">
+                  <div class="card-body">
+                    <h5 class="card-title">Training Time</h5>
+                    <h2 class="display-4">
+                      {{ "%.2f"|format(metrics.training_time) }} seconds
+                    </h2>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visualizations -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Confusion Matrix</h5>
+          </div>
+          <div class="card-body text-center">
+            {% if confusion_matrix_plot %}
+            <img
+              src="data:image/png;base64,{{ confusion_matrix_plot }}"
+              class="img-fluid"
+              alt="Confusion Matrix"
+            />
+            {% else %}
+            <div class="alert alert-warning">
+              Confusion matrix visualization not available.
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Feature Importance</h5>
+          </div>
+          <div class="card-body text-center">
+            {% if feature_importance_plot %}
+            <img
+              src="data:image/png;base64,{{ feature_importance_plot }}"
+              class="img-fluid"
+              alt="Feature Importance"
+            />
+            {% else %}
+            <div class="alert alert-warning">
+              Feature importance visualization not available.
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+      No {{ model_type|replace('_', ' ')|title }} model available. Please train
+      a model first.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
