@@ -128,10 +128,11 @@ endblock %} {% block content %}
             Total regions evaluated: {{ prediction_stats.total }}
           </p>
           <p>
-            Based on the latest model: {{ latest_model.model_type|capitalize if
-            latest_model else 'None' }} ({{
-            latest_model.created_at.strftime('%Y-%m-%d %H:%M') if latest_model
-            else 'N/A' }})
+            {% if best_model %} Based on best model: {{
+            best_model.model_type|replace('_', ' ')|title }} (determined using
+            accuracy: {{ "%.2f"|format(best_model.accuracy * 100) }}%, last
+            trained at: {{ best_model.created_at.strftime('%Y-%m-%d %H:%M') }})
+            {% else %} No model information available. {% endif %}
           </p>
         </div>
       </div>
@@ -150,6 +151,16 @@ endblock %} {% block content %}
           There are no prediction results available yet. Please add indicator
           data and train a model to see results.
         </p>
+        {% if current_user.is_admin %}
+        <div class="text-center">
+          <a
+            href="{{ url_for('dataset.train_models') }}"
+            class="btn btn-primary"
+          >
+            <i class="fas fa-cogs me-2"></i> Train Models
+          </a>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>

@@ -9,14 +9,14 @@ dashboard_bp = Blueprint('dashboard', __name__)
 @dashboard_bp.route('/')
 @login_required
 def index():
-    # Get the latest model
-    latest_model = TrainedModel.query.order_by(TrainedModel.created_at.desc()).first()
+    # Get the best model based on accuracy
+    best_model = TrainedModel.query.order_by(TrainedModel.accuracy.desc()).first()
     
     # Get prediction statistics if a model exists
     prediction_stats = None
-    if latest_model:
-        # Get predictions using the latest model
-        predictions = RegionPrediction.query.filter_by(model_id=latest_model.id).all()
+    if best_model:
+        # Get predictions using the best model
+        predictions = RegionPrediction.query.filter_by(model_id=best_model.id).all()
         
         if predictions:
             # Count predictions by class
@@ -42,4 +42,4 @@ def index():
     
     return render_template('dashboard/index.html', 
                           prediction_stats=prediction_stats,
-                          latest_model=latest_model) 
+                          best_model=best_model) 

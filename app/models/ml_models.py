@@ -2,6 +2,8 @@ from app import db
 import pickle
 import json
 from datetime import datetime
+import time
+import numpy as np
 
 class TrainedModel(db.Model):
     __tablename__ = 'trained_models'
@@ -19,6 +21,7 @@ class TrainedModel(db.Model):
     recall = db.Column(db.Float)
     f1_score = db.Column(db.Float)
     training_time = db.Column(db.Float)  # in seconds
+    inference_time = db.Column(db.Float)  # in seconds
     confusion_matrix = db.Column(db.Text)  # JSON string of confusion matrix
     feature_importance = db.Column(db.Text)  # JSON string of feature importance (for RF)
     
@@ -38,6 +41,24 @@ class TrainedModel(db.Model):
         self.f1_score = metrics.get('f1_score')
         self.training_time = metrics.get('training_time')
         self.confusion_matrix = json.dumps(metrics.get('confusion_matrix', []).tolist())
+        
+        # Calculate inference time
+        if model is not None and scaler is not None:
+            # Create a small sample for inference time calculation
+            sample_size = 100
+            n_features = len(feature_names)
+            X_sample = np.random.rand(sample_size, n_features)
+            X_scaled = scaler.transform(X_sample)
+            
+            # Measure inference time
+            start_time = time.time()
+            model.predict(X_scaled)
+            end_time = time.time()
+            
+            # Calculate average inference time per sample
+            self.inference_time = (end_time - start_time) / sample_size
+        else:
+            self.inference_time = 0.0
         
         # Save feature importance for Random Forest
         if self.model_type == 'random_forest' and hasattr(model, 'feature_importances_'):
@@ -62,6 +83,7 @@ class TrainedModel(db.Model):
             'recall': self.recall,
             'f1_score': self.f1_score,
             'training_time': self.training_time,
+            'inference_time': self.inference_time,
             'confusion_matrix': json.loads(self.confusion_matrix) if self.confusion_matrix else None,
             'feature_importance': json.loads(self.feature_importance) if self.feature_importance else None
         }

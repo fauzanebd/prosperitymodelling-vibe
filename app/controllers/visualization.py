@@ -39,26 +39,26 @@ def model_performance():
         metrics = selected_model.get_metrics()
         
         # Generate confusion matrix plot
-        confusion_matrix_plot = None
+        confusion_matrix_json = None
         if metrics['confusion_matrix']:
-            confusion_matrix_plot = generate_confusion_matrix_plot(metrics['confusion_matrix'])
+            confusion_matrix_json = generate_confusion_matrix_plot(metrics['confusion_matrix'])
         
         # Generate feature importance plot
-        feature_importance_plot = None
+        feature_importance_json = None
         if metrics['feature_importance']:
-            feature_importance_plot = generate_feature_importance_plot(metrics['feature_importance'])
+            feature_importance_json = generate_feature_importance_plot(metrics['feature_importance'])
     else:
         metrics = None
-        confusion_matrix_plot = None
-        feature_importance_plot = None
+        confusion_matrix_json = None
+        feature_importance_json = None
     
     return render_template('visualization/model_performance.html',
                           models=models,
                           selected_model=selected_model,
                           model_type=model_type,
                           metrics=metrics,
-                          confusion_matrix_plot=confusion_matrix_plot,
-                          feature_importance_plot=feature_importance_plot)
+                          confusion_matrix_json=confusion_matrix_json,
+                          feature_importance_json=feature_importance_json)
 
 @visualization_bp.route('/visualization/data')
 @login_required
@@ -107,7 +107,7 @@ def data_visualization():
             }
     
     # Generate visualization based on type
-    plot = None
+    plot_json = None
     if selected_indicator and viz_type:
         if viz_type == 'distribution':
             # Get data for the selected indicator
@@ -119,7 +119,7 @@ def data_visualization():
                 df = pd.DataFrame([(d.provinsi, d.value, d.label_sejahtera) for d in data],
                                  columns=['provinsi', selected_indicator, 'label_sejahtera'])
                 
-                plot = generate_indicator_distribution_plot(df, selected_indicator, year=year)
+                plot_json = generate_indicator_distribution_plot(df, selected_indicator, year=year)
         
         elif viz_type == 'trend':
             # Get data for the selected indicator
@@ -131,7 +131,7 @@ def data_visualization():
                 df = pd.DataFrame([(d.provinsi, d.year, d.value, d.label_sejahtera) for d in data],
                                  columns=['provinsi', 'year', selected_indicator, 'label_sejahtera'])
                 
-                plot = generate_indicator_trend_plot(df, selected_indicator)
+                plot_json = generate_indicator_trend_plot(df, selected_indicator)
         
         elif viz_type == 'regional_comparison':
             # Get data for the selected indicator
@@ -143,7 +143,7 @@ def data_visualization():
                 df = pd.DataFrame([(d.provinsi, d.value, d.label_sejahtera) for d in data],
                                  columns=['provinsi', selected_indicator, 'label_sejahtera'])
                 
-                plot = generate_regional_comparison_plot(df, selected_indicator, year=year)
+                plot_json = generate_regional_comparison_plot(df, selected_indicator, year=year)
         
         elif viz_type == 'prosperity_distribution':
             if latest_model:
@@ -155,7 +155,7 @@ def data_visualization():
                     df = pd.DataFrame([(p.provinsi, p.year, p.predicted_class, p.prediction_probability) for p in predictions],
                                      columns=['provinsi', 'year', 'predicted_class', 'probability'])
                     
-                    plot = generate_prosperity_distribution_plot(df)
+                    plot_json = generate_prosperity_distribution_plot(df)
         
         elif viz_type == 'prosperity_trend':
             if latest_model:
@@ -167,14 +167,14 @@ def data_visualization():
                     df = pd.DataFrame([(p.provinsi, p.year, p.predicted_class, p.prediction_probability) for p in predictions],
                                      columns=['provinsi', 'year', 'predicted_class', 'probability'])
                     
-                    plot = generate_prosperity_trend_plot(df)
+                    plot_json = generate_prosperity_trend_plot(df)
     
     return render_template('visualization/data_visualization.html',
                           indicators=indicators,
                           selected_indicator=selected_indicator,
                           viz_type=viz_type,
                           year=year,
-                          plot=plot,
+                          plot_json=plot_json,
                           prediction_stats=prediction_stats)
 
 @visualization_bp.route('/visualization/api/model/<int:model_id>')

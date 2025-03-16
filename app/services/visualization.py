@@ -1,20 +1,13 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import io
-import base64
-from matplotlib.figure import Figure
 import json
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-def _fig_to_base64(fig):
-    """Convert a matplotlib figure to base64 string for HTML display"""
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    img_str = base64.b64encode(buf.read()).decode('utf-8')
-    buf.close()
-    return img_str
+def plotly_to_json(fig):
+    """Convert a plotly figure to JSON for HTML display"""
+    return fig.to_json()
 
 def generate_confusion_matrix_plot(cm):
     """
@@ -28,7 +21,7 @@ def generate_confusion_matrix_plot(cm):
     Returns:
     --------
     str
-        Base64-encoded image
+        JSON for Plotly figure
     """
     cm = np.array(cm)
     
@@ -36,33 +29,40 @@ def generate_confusion_matrix_plot(cm):
     cm_norm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     cm_norm = np.nan_to_num(cm_norm)
     
-    # Create figure
-    fig, ax = plt.subplots(figsize=(8, 6))
+    # Create Plotly figure
+    labels = ['Not Sejahtera', 'Sejahtera']
     
-    # Plot confusion matrix
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+    # Create heatmap
+    fig = go.Figure(data=go.Heatmap(
+        z=cm,
+        x=labels,
+        y=labels,
+        colorscale='Blues',
+        showscale=False
+    ))
     
-    # Add percentage labels
+    # Add text annotations
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
-            if cm[i, j] > 0:
-                text = ax.text(j + 0.5, i + 0.7, f'({cm_norm[i, j]:.1%})',
-                              ha='center', va='center', color='black')
+            fig.add_annotation(
+                x=labels[j],
+                y=labels[i],
+                text=f"{cm[i, j]}<br>({cm_norm[i, j]:.1%})",
+                showarrow=False,
+                font=dict(color="black")
+            )
     
-    # Set labels
-    ax.set_xlabel('Predicted')
-    ax.set_ylabel('Actual')
-    ax.set_title('Confusion Matrix')
+    # Update layout
+    fig.update_layout(
+        title='Confusion Matrix',
+        xaxis_title='Predicted',
+        yaxis_title='Actual',
+        xaxis=dict(side='bottom'),
+        width=600,
+        height=500
+    )
     
-    # Set tick labels
-    ax.set_xticklabels(['Not Sejahtera', 'Sejahtera'])
-    ax.set_yticklabels(['Not Sejahtera', 'Sejahtera'])
-    
-    # Convert to base64
-    img_str = _fig_to_base64(fig)
-    plt.close(fig)
-    
-    return img_str
+    return plotly_to_json(fig)
 
 def generate_feature_importance_plot(feature_importance):
     """
@@ -76,7 +76,7 @@ def generate_feature_importance_plot(feature_importance):
     Returns:
     --------
     str
-        Base64-encoded image
+        JSON for Plotly figure
     """
     # Convert to DataFrame
     df = pd.DataFrame({
@@ -87,22 +87,24 @@ def generate_feature_importance_plot(feature_importance):
     # Sort by importance
     df = df.sort_values('Importance', ascending=False)
     
-    # Create figure
-    fig, ax = plt.subplots(figsize=(10, 8))
+    # Create Plotly figure
+    fig = px.bar(
+        df, 
+        x='Importance', 
+        y='Feature',
+        orientation='h',
+        title='Feature Importance'
+    )
     
-    # Plot feature importance
-    sns.barplot(x='Importance', y='Feature', data=df, ax=ax)
+    # Update layout
+    fig.update_layout(
+        xaxis_title='Importance',
+        yaxis_title='Feature',
+        width=800,
+        height=600
+    )
     
-    # Set labels
-    ax.set_xlabel('Importance')
-    ax.set_ylabel('Feature')
-    ax.set_title('Feature Importance')
-    
-    # Convert to base64
-    img_str = _fig_to_base64(fig)
-    plt.close(fig)
-    
-    return img_str
+    return plotly_to_json(fig)
 
 def generate_indicator_distribution_plot(df, indicator_name, year=None):
     """
@@ -120,37 +122,34 @@ def generate_indicator_distribution_plot(df, indicator_name, year=None):
     Returns:
     --------
     str
-        Base64-encoded image
+        JSON for Plotly figure
     """
-    # Create figure
-    fig, ax = plt.subplots(figsize=(10, 6))
-    
-    # Plot distribution
-    sns.histplot(df[indicator_name], kde=True, ax=ax)
-    
-    # Add vertical lines for quartiles
+    # Calculate quartiles
     q1 = df[indicator_name].quantile(0.25)
     q3 = df[indicator_name].quantile(0.75)
     
-    ax.axvline(q1, color='r', linestyle='--', label=f'Q1: {q1:.2f}')
-    ax.axvline(q3, color='g', linestyle='--', label=f'Q3: {q3:.2f}')
+    # Create Plotly figure
+    fig = px.histogram(
+        df, 
+        x=indicator_name,
+        title=f'Distribution of {indicator_name}' + (f' ({year})' if year else ''),
+        nbins=20,
+        marginal='box'
+    )
     
-    # Set labels
-    ax.set_xlabel(indicator_name)
-    ax.set_ylabel('Count')
-    title = f'Distribution of {indicator_name}'
-    if year:
-        title += f' ({year})'
-    ax.set_title(title)
+    # Add vertical lines for quartiles
+    fig.add_vline(x=q1, line_dash="dash", line_color="red", annotation_text=f"Q1: {q1:.2f}")
+    fig.add_vline(x=q3, line_dash="dash", line_color="green", annotation_text=f"Q3: {q3:.2f}")
     
-    # Add legend
-    ax.legend()
+    # Update layout
+    fig.update_layout(
+        xaxis_title=indicator_name,
+        yaxis_title='Count',
+        width=800,
+        height=500
+    )
     
-    # Convert to base64
-    img_str = _fig_to_base64(fig)
-    plt.close(fig)
-    
-    return img_str
+    return plotly_to_json(fig)
 
 def generate_indicator_trend_plot(df, indicator_name):
     """
@@ -166,27 +165,29 @@ def generate_indicator_trend_plot(df, indicator_name):
     Returns:
     --------
     str
-        Base64-encoded image
+        JSON for Plotly figure
     """
     # Group by year and calculate mean
     yearly_mean = df.groupby('year')[indicator_name].mean().reset_index()
     
-    # Create figure
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Create Plotly figure
+    fig = px.line(
+        yearly_mean, 
+        x='year', 
+        y=indicator_name,
+        markers=True,
+        title=f'Trend of {indicator_name} Over Time'
+    )
     
-    # Plot trend
-    sns.lineplot(x='year', y=indicator_name, data=yearly_mean, marker='o', ax=ax)
+    # Update layout
+    fig.update_layout(
+        xaxis_title='Year',
+        yaxis_title=indicator_name,
+        width=800,
+        height=500
+    )
     
-    # Set labels
-    ax.set_xlabel('Year')
-    ax.set_ylabel(indicator_name)
-    ax.set_title(f'Trend of {indicator_name} Over Time')
-    
-    # Convert to base64
-    img_str = _fig_to_base64(fig)
-    plt.close(fig)
-    
-    return img_str
+    return plotly_to_json(fig)
 
 def generate_regional_comparison_plot(df, indicator_name, year=None, top_n=20):
     """
@@ -206,7 +207,7 @@ def generate_regional_comparison_plot(df, indicator_name, year=None, top_n=20):
     Returns:
     --------
     str
-        Base64-encoded image
+        JSON for Plotly figure
     """
     # Sort by indicator value
     df_sorted = df.sort_values(indicator_name, ascending=False)
@@ -214,30 +215,25 @@ def generate_regional_comparison_plot(df, indicator_name, year=None, top_n=20):
     # Take top N regions
     df_top = df_sorted.head(top_n)
     
-    # Create figure
-    fig, ax = plt.subplots(figsize=(12, 8))
+    # Create Plotly figure
+    fig = px.bar(
+        df_top, 
+        x=indicator_name, 
+        y='provinsi',
+        color='label_sejahtera',
+        color_discrete_map={'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'},
+        title=f'Top {top_n} Regions by {indicator_name}' + (f' ({year})' if year else '')
+    )
     
-    # Plot regional comparison
-    bars = sns.barplot(x=indicator_name, y='provinsi', data=df_top, 
-                      hue='label_sejahtera', palette={'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'},
-                      ax=ax)
+    # Update layout
+    fig.update_layout(
+        xaxis_title=indicator_name,
+        yaxis_title='Region',
+        width=900,
+        height=700
+    )
     
-    # Set labels
-    ax.set_xlabel(indicator_name)
-    ax.set_ylabel('Region')
-    title = f'Top {top_n} Regions by {indicator_name}'
-    if year:
-        title += f' ({year})'
-    ax.set_title(title)
-    
-    # Add legend
-    ax.legend(title='Prosperity Label')
-    
-    # Convert to base64
-    img_str = _fig_to_base64(fig)
-    plt.close(fig)
-    
-    return img_str
+    return plotly_to_json(fig)
 
 def generate_prosperity_distribution_plot(df):
     """
@@ -251,34 +247,32 @@ def generate_prosperity_distribution_plot(df):
     Returns:
     --------
     str
-        Base64-encoded image
+        JSON for Plotly figure
     """
     # Count predictions by class
     counts = df['predicted_class'].value_counts()
     
-    # Create figure
-    fig, ax = plt.subplots(figsize=(10, 6))
-    
-    # Plot distribution
+    # Create Plotly figure
     colors = {'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'}
-    bars = ax.bar(counts.index, counts.values, color=[colors.get(c, 'blue') for c in counts.index])
+    fig = px.bar(
+        x=counts.index, 
+        y=counts.values,
+        color=counts.index,
+        color_discrete_map=colors,
+        title='Distribution of Prosperity Predictions',
+        text=counts.values
+    )
     
-    # Add count labels
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-               f'{height:.0f}', ha='center', va='bottom')
+    # Update layout
+    fig.update_layout(
+        xaxis_title='Prosperity Class',
+        yaxis_title='Count',
+        width=700,
+        height=500,
+        showlegend=False
+    )
     
-    # Set labels
-    ax.set_xlabel('Prosperity Class')
-    ax.set_ylabel('Count')
-    ax.set_title('Distribution of Prosperity Predictions')
-    
-    # Convert to base64
-    img_str = _fig_to_base64(fig)
-    plt.close(fig)
-    
-    return img_str
+    return plotly_to_json(fig)
 
 def generate_prosperity_trend_plot(df):
     """
@@ -292,29 +286,32 @@ def generate_prosperity_trend_plot(df):
     Returns:
     --------
     str
-        Base64-encoded image
+        JSON for Plotly figure
     """
     # Group by year and predicted class
     yearly_counts = df.groupby(['year', 'predicted_class']).size().unstack().fillna(0)
     
-    # Create figure
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Create Plotly figure
+    fig = go.Figure()
     
-    # Plot trend
+    # Add lines for each class
     colors = {'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'}
     for cls in yearly_counts.columns:
-        ax.plot(yearly_counts.index, yearly_counts[cls], marker='o', label=cls, color=colors.get(cls, 'blue'))
+        fig.add_trace(go.Scatter(
+            x=yearly_counts.index, 
+            y=yearly_counts[cls],
+            mode='lines+markers',
+            name=cls,
+            line=dict(color=colors.get(cls, 'blue'))
+        ))
     
-    # Set labels
-    ax.set_xlabel('Year')
-    ax.set_ylabel('Count')
-    ax.set_title('Trend of Prosperity Predictions Over Time')
+    # Update layout
+    fig.update_layout(
+        title='Trend of Prosperity Predictions Over Time',
+        xaxis_title='Year',
+        yaxis_title='Count',
+        width=800,
+        height=500
+    )
     
-    # Add legend
-    ax.legend(title='Prosperity Class')
-    
-    # Convert to base64
-    img_str = _fig_to_base64(fig)
-    plt.close(fig)
-    
-    return img_str 
+    return plotly_to_json(fig) 

@@ -1,158 +1,165 @@
-{% extends 'base.html' %} {% block title %}Model Performance - Prosperity
-Analysis{% endblock %} {% block content %}
-<div class="card">
-  <div class="card-header bg-primary text-white">
-    <h4 class="mb-0">Model Performance Comparison</h4>
-  </div>
-  <div class="card-body">
-    <!-- Model Selection -->
-    <div class="row mb-4">
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-header bg-info text-white">
-            <h5 class="mb-0">Select Model Type</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-12">
-                <div class="btn-group w-100" role="group">
-                  <a
-                    href="{{ url_for('visualization.model_performance', model_type='random_forest') }}"
-                    class="btn btn-{% if model_type == 'random_forest' %}primary{% else %}outline-primary{% endif %} btn-lg"
-                  >
-                    <i class="fas fa-tree"></i> Random Forest
-                  </a>
-                  <a
-                    href="{{ url_for('visualization.model_performance', model_type='logistic_regression') }}"
-                    class="btn btn-{% if model_type == 'logistic_regression' %}primary{% else %}outline-primary{% endif %} btn-lg"
-                  >
-                    <i class="fas fa-chart-line"></i> Logistic Regression
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+{% extends 'base.html' %}
 
-    {% if selected_model %}
-    <!-- Performance Metrics -->
-    <div class="row mb-4">
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-header bg-success text-white">
-            <h5 class="mb-0">Performance Metrics</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-3">
-                <div class="card text-center mb-3">
-                  <div class="card-body">
-                    <h5 class="card-title">Accuracy</h5>
-                    <h2 class="display-4">
-                      {{ "%.2f"|format(metrics.accuracy * 100) }}%
-                    </h2>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="card text-center mb-3">
-                  <div class="card-body">
-                    <h5 class="card-title">Precision</h5>
-                    <h2 class="display-4">
-                      {{ "%.2f"|format(metrics.precision * 100) }}%
-                    </h2>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="card text-center mb-3">
-                  <div class="card-body">
-                    <h5 class="card-title">Recall</h5>
-                    <h2 class="display-4">
-                      {{ "%.2f"|format(metrics.recall * 100) }}%
-                    </h2>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="card text-center mb-3">
-                  <div class="card-body">
-                    <h5 class="card-title">F1 Score</h5>
-                    <h2 class="display-4">
-                      {{ "%.2f"|format(metrics.f1_score * 100) }}%
-                    </h2>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-12">
-                <div class="card text-center">
-                  <div class="card-body">
-                    <h5 class="card-title">Training Time</h5>
-                    <h2 class="display-4">
-                      {{ "%.2f"|format(metrics.training_time) }} seconds
-                    </h2>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+{% block title %}Model Performance - Prosperity Analysis{% endblock %}
 
-    <!-- Visualizations -->
-    <div class="row">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header bg-info text-white">
-            <h5 class="mb-0">Confusion Matrix</h5>
-          </div>
-          <div class="card-body text-center">
-            {% if confusion_matrix_plot %}
-            <img
-              src="data:image/png;base64,{{ confusion_matrix_plot }}"
-              class="img-fluid"
-              alt="Confusion Matrix"
-            />
-            {% else %}
-            <div class="alert alert-warning">
-              Confusion matrix visualization not available.
-            </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header bg-info text-white">
-            <h5 class="mb-0">Feature Importance</h5>
-          </div>
-          <div class="card-body text-center">
-            {% if feature_importance_plot %}
-            <img
-              src="data:image/png;base64,{{ feature_importance_plot }}"
-              class="img-fluid"
-              alt="Feature Importance"
-            />
-            {% else %}
-            <div class="alert alert-warning">
-              Feature importance visualization not available.
-            </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
+{% block extra_js %}
+<!-- Add Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+{% if confusion_matrix_json or feature_importance_json %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if confusion_matrix_json %}
+        var confusionData = {{ confusion_matrix_json|safe }};
+        Plotly.newPlot('confusion-matrix-plot', confusionData);
+        {% endif %}
+        
+        {% if feature_importance_json %}
+        var featureData = {{ feature_importance_json|safe }};
+        Plotly.newPlot('feature-importance-plot', featureData);
+        {% endif %}
+        
+    });
+</script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">Model Performance Comparison</h4>
     </div>
-    {% else %}
-    <div class="alert alert-warning">
-      No {{ model_type|replace('_', ' ')|title }} model available. Please train
-      a model first.
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('visualization.model_performance') }}">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="model_type" class="form-label">Model Type</label>
+                        <select class="form-select" id="model_type" name="model_type" onchange="this.form.submit()">
+                            <option value="random_forest" {% if model_type == 'random_forest' %}selected{% endif %}>Random Forest</option>
+                            <option value="logistic_regression" {% if model_type == 'logistic_regression' %}selected{% endif %}>Logistic Regression</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </form>
     </div>
-    {% endif %}
-  </div>
+</div>
+
+<!-- Performance Metrics -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Performance Metrics - {{ model_type|replace('_', ' ')|title }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Accuracy</h5>
+                                <h2 class="display-4">{{ "%.2f"|format(metrics.accuracy * 100) }}%</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Precision</h5>
+                                <h2 class="display-4">{{ "%.2f"|format(metrics.precision * 100) }}%</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Recall</h5>
+                                <h2 class="display-4">{{ "%.2f"|format(metrics.recall * 100) }}%</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">F1 Score</h5>
+                                <h2 class="display-4">
+                                    {% if metrics.f1_score is defined and metrics.f1_score is not none %}
+                                        {{ "%.2f"|format(metrics.f1_score * 100) }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Training Time</h5>
+                                <h2 class="display-4">{{ "%.2f"|format(metrics.training_time) }} s</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Inference Time</h5>
+                                <h2 class="display-4">
+                                    {% if metrics.inference_time is defined and metrics.inference_time is not none %}
+                                        {{ "%.4f"|format(metrics.inference_time * 1000) }} ms
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visualizations -->
+<div class="row">
+    <!-- Confusion Matrix -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">Confusion Matrix</h4>
+            </div>
+            <div class="card-body d-flex justify-content-center">
+                {% if confusion_matrix_json %}
+                <div id="confusion-matrix-plot" style="width: 100%; min-height: 450px;"></div>
+                {% else %}
+                <div class="alert alert-warning">
+                    No confusion matrix data available.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+  <!-- Feature Importance -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">Feature Importance</h4>
+            </div>
+            <div class="card-body d-flex justify-content-center">
+                {% if feature_importance_json %}
+                <div id="feature-importance-plot" style="width: 100%; min-height: 500px;"></div>
+                {% else %}
+                <div class="alert alert-warning">
+                    No feature importance data available.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

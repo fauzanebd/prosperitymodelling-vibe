@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app.models.indicators import INDICATOR_MODELS
 from app import db
 from app.services.data_processor import preprocess_indicator_value, label_indicator_value
-from app.services.model_trainer import retrain_model_if_needed
+from app.services.model_trainer import retrain_model_if_needed, generate_predictions
 from sqlalchemy import func
 import pandas as pd
 
@@ -185,4 +185,35 @@ def get_provinces():
     # Get unique provinces
     provinces = db.session.query(model_class.provinsi).distinct().order_by(model_class.provinsi).all()
     
-    return jsonify([p[0] for p in provinces]) 
+    return jsonify([p[0] for p in provinces])
+
+@dataset_bp.route('/dataset/train-models', methods=['GET', 'POST'])
+@login_required
+def train_models():
+    """Manually trigger model training"""
+    # Only admin can trigger model training
+    if not current_user.is_admin:
+        flash('You do not have permission to train models', 'danger')
+        return redirect(url_for('dataset.index'))
+    
+    if request.method == 'POST':
+        from app.services.model_trainer import retrain_model_if_needed, generate_predictions
+        success = retrain_model_if_needed('indeks_pembangunan_manusia')
+        
+        if success:
+            # Get the latest model to generate predictions
+            from app.models.ml_models import TrainedModel
+            latest_model = TrainedModel.query.order_by(TrainedModel.created_at.desc()).first()
+            
+            if latest_model:
+                # Generate predictions using the latest model
+                predictions = generate_predictions(latest_model.id)
+                flash(f'Models trained successfully and {len(predictions)} predictions generated', 'success')
+            else:
+                flash('Models trained successfully but no model found for predictions', 'warning')
+        else:
+            flash('Failed to train models', 'danger')
+        
+        return redirect(url_for('visualization.model_performance'))
+    
+    return render_template('dataset/train.html') 

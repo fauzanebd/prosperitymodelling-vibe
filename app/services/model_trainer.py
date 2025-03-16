@@ -323,7 +323,11 @@ def retrain_model_if_needed(indicator_name):
     lr_results = train_logistic_regression(X, y, feature_names)
     lr_model = save_model_to_db('logistic_regression', lr_results)
     
-    # Generate predictions using the Random Forest model
-    generate_predictions(rf_model.id)
+    # Generate predictions using both models
+    rf_predictions = generate_predictions(rf_model.id)
+    lr_predictions = generate_predictions(lr_model.id)
+    
+    print(f"Generated {len(rf_predictions)} predictions for Random Forest model")
+    print(f"Generated {len(lr_predictions)} predictions for Logistic Regression model")
     
     return True 
