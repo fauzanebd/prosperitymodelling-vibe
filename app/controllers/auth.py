@@ -19,10 +19,11 @@ def login():
         
         if user and user.check_password(password):
             login_user(user)
+            flash('Logged in successfully.', 'success')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('dashboard.index'))
         else:
-            flash('Invalid username or password', 'danger')
+            flash('Invalid username or password.', 'error')
     
     return render_template('auth/login.html')
 
@@ -30,21 +31,20 @@ def login():
 @login_required
 def logout():
     logout_user()
+    flash('Logged out successfully.', 'success')
     return redirect(url_for('auth.login'))
 
-# Create initial users if they don't exist
-@auth_bp.before_app_first_request
-def create_initial_users():
-    # Check if users already exist
-    if User.query.count() == 0:
-        # Create admin user
+# Create initial admin user
+def create_admin():
+    if not User.query.filter_by(username='admin').first():
         admin = User(username='admin', is_admin=True)
         admin.set_password('admin123')
-        
-        # Create regular user
-        user = User(username='user', is_admin=False)
-        user.set_password('user123')
-        
-        db.session.add_all([admin, user])
+        db.session.add(admin)
         db.session.commit()
-        print("Initial users created.") 
+
+# Register the create_admin function to be called when the app starts
+@auth_bp.before_app_request
+def init_admin():
+    if not getattr(init_admin, '_is_initialized', False):
+        create_admin()
+        init_admin._is_initialized = True 

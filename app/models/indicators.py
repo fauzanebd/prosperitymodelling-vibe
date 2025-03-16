@@ -79,8 +79,15 @@ class KawasanPariwisata(BaseIndicator):
     value = db.Column(db.Float)
     label_sejahtera = db.Column(db.String(64))
 
-class Kendaraan(BaseIndicator):
-    __tablename__ = 'kendaraan'
+# Replace Kendaraan class with Roda2 and Roda4
+class KendaraanRoda2(BaseIndicator):
+    __tablename__ = 'kendaraan_roda_2'
+    
+    value = db.Column(db.Float)
+    label_sejahtera = db.Column(db.String(64))
+
+class KendaraanRoda4(BaseIndicator):
+    __tablename__ = 'kendaraan_roda_4'
     
     value = db.Column(db.Float)
     label_sejahtera = db.Column(db.String(64))
@@ -147,14 +154,52 @@ class AngkaMelekHuruf(BaseIndicator):
     value = db.Column(db.Float)
     label_sejahtera = db.Column(db.String(64))
 
-class AngkaPartisipasiKasar(BaseIndicator):
-    __tablename__ = 'angka_partisipasi_kasar'
+# Replace AngkaPartisipasiKasar with specific education levels
+class AngkaPartisipasiKasarSD(BaseIndicator):
+    __tablename__ = 'angka_partisipasi_kasar_sd_mi_paket_a'
     
     value = db.Column(db.Float)
     label_sejahtera = db.Column(db.String(64))
 
-class AngkaPartisipasiMurni(BaseIndicator):
-    __tablename__ = 'angka_partisipasi_murni'
+class AngkaPartisipasiKasarSMP(BaseIndicator):
+    __tablename__ = 'angka_partisipasi_kasar_smp_mts_paket_b'
+    
+    value = db.Column(db.Float)
+    label_sejahtera = db.Column(db.String(64))
+
+class AngkaPartisipasiKasarSMA(BaseIndicator):
+    __tablename__ = 'angka_partisipasi_kasar_sma_ma_paket_c'
+    
+    value = db.Column(db.Float)
+    label_sejahtera = db.Column(db.String(64))
+
+class AngkaPartisipasiKasarPT(BaseIndicator):
+    __tablename__ = 'angka_partisipasi_kasar_perguruan_tinggi'
+    
+    value = db.Column(db.Float)
+    label_sejahtera = db.Column(db.String(64))
+
+# Replace AngkaPartisipasiMurni with specific education levels
+class AngkaPartisipasiMurniSD(BaseIndicator):
+    __tablename__ = 'angka_partisipasi_murni_sd_mi_paket_a'
+    
+    value = db.Column(db.Float)
+    label_sejahtera = db.Column(db.String(64))
+
+class AngkaPartisipasiMurniSMP(BaseIndicator):
+    __tablename__ = 'angka_partisipasi_murni_smp_mts_paket_b'
+    
+    value = db.Column(db.Float)
+    label_sejahtera = db.Column(db.String(64))
+
+class AngkaPartisipasiMurniSMA(BaseIndicator):
+    __tablename__ = 'angka_partisipasi_murni_sma_ma_paket_c'
+    
+    value = db.Column(db.Float)
+    label_sejahtera = db.Column(db.String(64))
+
+class AngkaPartisipasiMurniPT(BaseIndicator):
+    __tablename__ = 'angka_partisipasi_murni_perguruan_tinggi'
     
     value = db.Column(db.Float)
     label_sejahtera = db.Column(db.String(64))
@@ -165,7 +210,7 @@ class RataRataLamaSekolah(BaseIndicator):
     value = db.Column(db.Float)
     label_sejahtera = db.Column(db.String(64))
 
-# Dictionary mapping indicator names to model classes
+# Update the INDICATOR_MODELS dictionary
 INDICATOR_MODELS = {
     # Economic indicators
     'indeks_pembangunan_manusia': IndeksPembangunanManusia,
@@ -181,7 +226,8 @@ INDICATOR_MODELS = {
     'hunian_layak': HunianLayak,
     'akses_air_minum': AksesAirMinum,
     'kawasan_pariwisata': KawasanPariwisata,
-    'kendaraan': Kendaraan,
+    'kendaraan_roda_2': KendaraanRoda2,
+    'kendaraan_roda_4': KendaraanRoda4,
     'panjang_ruas_jalan': PanjangRuasJalan,
     'titik_layanan_internet': TitikLayananInternet,
     
@@ -196,7 +242,13 @@ INDICATOR_MODELS = {
     
     # Education indicators
     'angka_melek_huruf': AngkaMelekHuruf,
-    'angka_partisipasi_kasar': AngkaPartisipasiKasar,
-    'angka_partisipasi_murni': AngkaPartisipasiMurni,
+    'angka_partisipasi_kasar_sd_mi_paket_a': AngkaPartisipasiKasarSD,
+    'angka_partisipasi_kasar_smp_mts_paket_b': AngkaPartisipasiKasarSMP,
+    'angka_partisipasi_kasar_sma_ma_paket_c': AngkaPartisipasiKasarSMA,
+    'angka_partisipasi_kasar_perguruan_tinggi': AngkaPartisipasiKasarPT,
+    'angka_partisipasi_murni_sd_mi_paket_a': AngkaPartisipasiMurniSD,
+    'angka_partisipasi_murni_smp_mts_paket_b': AngkaPartisipasiMurniSMP,
+    'angka_partisipasi_murni_sma_ma_paket_c': AngkaPartisipasiMurniSMA,
+    'angka_partisipasi_murni_perguruan_tinggi': AngkaPartisipasiMurniPT,
     'rata_rata_lama_sekolah': RataRataLamaSekolah
 } 

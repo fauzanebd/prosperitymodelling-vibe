@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=prosperity
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # This maps the port to your host machine
+
+volumes:
+  postgres_data_dev: # Different volume name to avoid conflicts with production

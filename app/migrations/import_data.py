@@ -4,32 +4,27 @@ import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import importlib.util
 
 # Add the parent directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-# Import the prosperityModelling module
-spec = importlib.util.spec_from_file_location("prosperityModelling", "../../prosperityModelling.py")
-prosperity_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(prosperity_module)
-
 # Import the app and models
 from app import create_app, db
 from app.models.indicators import INDICATOR_MODELS
+from app.lib import load_data, INDICATOR_PROCESSORS, label_iqr
 
 def import_data():
-    """Import data from the original notebook into the database"""
-    print("Importing data from the original notebook...")
+    """Import data from CSV files into the database"""
+    print("Importing data...")
     
     # Create app context
     app = create_app()
     with app.app_context():
-        # Load data from the original notebook
-        data_ekonomi_dir = "../../data/ekonomi"
-        data_infra_dir = "../../data/infrastruktur"
-        data_kesehatan_dir = "../../data/kesehatan"
-        data_pendidikan_dir = "../../data/pendidikan"
+        # Load data from CSV files
+        data_ekonomi_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/ekonomi"))
+        data_infra_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/infrastruktur"))
+        data_kesehatan_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/kesehatan"))
+        data_pendidikan_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/pendidikan"))
         
         # Define dictionaries to store indicator data
         data_ekonomi_indicator_to_file = {
@@ -72,62 +67,60 @@ def import_data():
         # Load data
         for indicator, file_info in data_ekonomi_indicator_to_file.items():
             file_path = os.path.join(data_ekonomi_dir, file_info["file"])
-            file_info["data"] = prosperity_module.load_data(file_path)
+            file_info["data"] = load_data(file_path)
         
         for indicator, file_info in data_infrastruktur_indicator_to_file.items():
             file_path = os.path.join(data_infra_dir, file_info["file"])
-            file_info["data"] = prosperity_module.load_data(file_path)
+            file_info["data"] = load_data(file_path)
         
         for indicator, file_info in data_kesehatan_indicator_to_file.items():
             file_path = os.path.join(data_kesehatan_dir, file_info["file"])
-            file_info["data"] = prosperity_module.load_data(file_path)
+            file_info["data"] = load_data(file_path)
         
         for indicator, file_info in data_pendidikan_indicator_to_file.items():
             file_path = os.path.join(data_pendidikan_dir, file_info["file"])
-            file_info["data"] = prosperity_module.load_data(file_path)
+            file_info["data"] = load_data(file_path)
         
-        # Preprocess data
-        # Economic indicators
-        data_ekonomi_indicator_to_file["indeks_pembangunan_manusia"]["data"] = prosperity_module.preprocess_indeks_pembangunan_manusia(data_ekonomi_indicator_to_file["indeks_pembangunan_manusia"]["data"])
-        data_ekonomi_indicator_to_file["tingkat_pengangguran_terbuka"]["data"] = prosperity_module.preprocess_tingkat_pengangguran_terbuka(data_ekonomi_indicator_to_file["tingkat_pengangguran_terbuka"]["data"])
-        data_ekonomi_indicator_to_file["pdrb_harga_konstan"]["data"] = prosperity_module.preprocess_pdrb_harga_konstan(data_ekonomi_indicator_to_file["pdrb_harga_konstan"]["data"])
-        data_ekonomi_indicator_to_file["penduduk_miskin"]["data"] = prosperity_module.preprocess_penduduk_miskin(data_ekonomi_indicator_to_file["penduduk_miskin"]["data"])
-        data_ekonomi_indicator_to_file["jml_pengeluaran_per_kapita"]["data"] = prosperity_module.preprocess_jml_pengeluaran_per_kapita(data_ekonomi_indicator_to_file["jml_pengeluaran_per_kapita"]["data"])
-        data_ekonomi_indicator_to_file["jml_penduduk_bekerja"]["data"] = prosperity_module.preprocess_jml_penduduk_bekerja(data_ekonomi_indicator_to_file["jml_penduduk_bekerja"]["data"])
-        data_ekonomi_indicator_to_file["daftar_upah_minimum"]["data"] = prosperity_module.preprocess_daftar_upah_minimum(data_ekonomi_indicator_to_file["daftar_upah_minimum"]["data"])
-        
-        # Infrastructure indicators
-        data_infrastruktur_indicator_to_file["sanitasi_layak"]["data"] = prosperity_module.preprocess_sanitasi_layak(data_infrastruktur_indicator_to_file["sanitasi_layak"]["data"])
-        data_infrastruktur_indicator_to_file["hunian_layak"]["data"] = prosperity_module.preprocess_hunian_layak(data_infrastruktur_indicator_to_file["hunian_layak"]["data"])
-        data_infrastruktur_indicator_to_file["akses_air_minum"]["data"] = prosperity_module.preprocess_akses_air_minum(data_infrastruktur_indicator_to_file["akses_air_minum"]["data"])
-        data_infrastruktur_indicator_to_file["kawasan_pariwisata"]["data"] = prosperity_module.preprocess_kawasan_pariwisata(data_infrastruktur_indicator_to_file["kawasan_pariwisata"]["data"])
-        data_infrastruktur_indicator_to_file["kendaraan"]["data"] = prosperity_module.preprocess_kendaraan(data_infrastruktur_indicator_to_file["kendaraan"]["data"])
-        data_infrastruktur_indicator_to_file["panjang_ruas_jalan"]["data"] = prosperity_module.preprocess_panjang_ruas_jalan(data_infrastruktur_indicator_to_file["panjang_ruas_jalan"]["data"])
-        data_infrastruktur_indicator_to_file["titik_layanan_internet"]["data"] = prosperity_module.preprocess_titik_layanan_internet(data_infrastruktur_indicator_to_file["titik_layanan_internet"]["data"])
-        
-        # Health indicators
-        data_kesehatan_indicator_to_file["angka_harapan_hidup"]["data"] = prosperity_module.preprocess_angka_harapan_hidup(data_kesehatan_indicator_to_file["angka_harapan_hidup"]["data"])
-        data_kesehatan_indicator_to_file["fasilitas_kesehatan"]["data"] = prosperity_module.preprocess_fasilitas_kesehatan(data_kesehatan_indicator_to_file["fasilitas_kesehatan"]["data"])
-        data_kesehatan_indicator_to_file["kematian_balita"]["data"] = prosperity_module.preprocess_kematian_balita(data_kesehatan_indicator_to_file["kematian_balita"]["data"])
-        data_kesehatan_indicator_to_file["kematian_bayi"]["data"] = prosperity_module.preprocess_kematian_bayi(data_kesehatan_indicator_to_file["kematian_bayi"]["data"])
-        data_kesehatan_indicator_to_file["kematian_ibu"]["data"] = prosperity_module.preprocess_kematian_ibu(data_kesehatan_indicator_to_file["kematian_ibu"]["data"])
-        data_kesehatan_indicator_to_file["persentase_balita_stunting"]["data"] = prosperity_module.preprocess_persentase_balita_stunting(data_kesehatan_indicator_to_file["persentase_balita_stunting"]["data"])
-        data_kesehatan_indicator_to_file["imunisasi_dasar"]["data"] = prosperity_module.preprocess_imunisasi_dasar(data_kesehatan_indicator_to_file["imunisasi_dasar"]["data"])
-        
-        # Education indicators
-        data_pendidikan_indicator_to_file["angka_melek_huruf"]["data"] = prosperity_module.preprocess_angka_melek_huruf(data_pendidikan_indicator_to_file["angka_melek_huruf"]["data"])
-        data_pendidikan_indicator_to_file["angka_partisipasi_kasar"]["data"] = prosperity_module.preprocess_angka_partisipasi_kasar(data_pendidikan_indicator_to_file["angka_partisipasi_kasar"]["data"])
-        data_pendidikan_indicator_to_file["angka_partisipasi_murni"]["data"] = prosperity_module.preprocess_angka_partisipasi_murni(data_pendidikan_indicator_to_file["angka_partisipasi_murni"]["data"])
-        data_pendidikan_indicator_to_file["rata_rata_lama_sekolah"]["data"] = prosperity_module.preprocess_rata_rata_lama_sekolah(data_pendidikan_indicator_to_file["rata_rata_lama_sekolah"]["data"])
-        
-        # Combine all indicators
+        # Process data
         all_data = {}
-        all_data.update({k: v["data"] for k, v in data_ekonomi_indicator_to_file.items()})
-        all_data.update({k: v["data"] for k, v in data_infrastruktur_indicator_to_file.items()})
-        all_data.update({k: v["data"] for k, v in data_kesehatan_indicator_to_file.items()})
-        all_data.update({k: v["data"] for k, v in data_pendidikan_indicator_to_file.items()})
         
-        # Apply IQR labeling to all indicators
+        # Process economic indicators
+        for indicator, file_info in data_ekonomi_indicator_to_file.items():
+            if indicator in INDICATOR_PROCESSORS:
+                all_data[indicator] = INDICATOR_PROCESSORS[indicator](file_info["data"])
+        
+        # Process infrastructure indicators
+        for indicator, file_info in data_infrastruktur_indicator_to_file.items():
+            if indicator in INDICATOR_PROCESSORS:
+                if indicator == 'kendaraan':
+                    df_roda_2, df_roda_4 = INDICATOR_PROCESSORS[indicator](file_info["data"])
+                    all_data['kendaraan_roda_2'] = df_roda_2
+                    all_data['kendaraan_roda_4'] = df_roda_4
+                else:
+                    all_data[indicator] = INDICATOR_PROCESSORS[indicator](file_info["data"])
+        
+        # Process health indicators
+        for indicator, file_info in data_kesehatan_indicator_to_file.items():
+            if indicator in INDICATOR_PROCESSORS:
+                all_data[indicator] = INDICATOR_PROCESSORS[indicator](file_info["data"])
+        
+        # Process education indicators
+        for indicator, file_info in data_pendidikan_indicator_to_file.items():
+            if indicator in INDICATOR_PROCESSORS:
+                if indicator == 'angka_partisipasi_murni':
+                    result_dfs = INDICATOR_PROCESSORS[indicator](file_info["data"])
+                    # Add each education level's DataFrame to all_data
+                    for level_name, df in result_dfs.items():
+                        all_data[level_name] = df
+                elif indicator == 'angka_partisipasi_kasar':
+                    result_dfs = INDICATOR_PROCESSORS[indicator](file_info["data"])
+                    # Add each education level's DataFrame to all_data
+                    for level_name, df in result_dfs.items():
+                        all_data[level_name] = df
+                else:
+                    all_data[indicator] = INDICATOR_PROCESSORS[indicator](file_info["data"])
+        
+        # Apply IQR labeling
         all_data_final = {}
         for indicator, df in all_data.items():
             # Special case for indicators where lower values are better
@@ -141,28 +134,30 @@ def import_data():
             ]
             
             # Apply IQR labeling
-            df_labeled = prosperity_module.label_iqr(df, indicator, reverse=reverse)
+            df_labeled = df.copy()
+            df_labeled['label_sejahtera'] = label_iqr(df_labeled, indicator, reverse=reverse)
             all_data_final[indicator] = df_labeled
         
         # Import data into the database
         for indicator, df in all_data_final.items():
-            model_class = INDICATOR_MODELS[indicator]
-            
-            # Delete existing data
-            model_class.query.delete()
-            
-            # Insert new data
-            for _, row in df.iterrows():
-                new_data = model_class(
-                    provinsi=row['wilayah'],
-                    year=row['year'],
-                    value=row[indicator],
-                    label_sejahtera=row['label_sejahtera']
-                )
-                db.session.add(new_data)
-            
-            db.session.commit()
-            print(f"Imported {len(df)} rows for {indicator}")
+            if indicator in INDICATOR_MODELS:
+                model_class = INDICATOR_MODELS[indicator]
+                
+                # Delete existing data
+                model_class.query.delete()
+                
+                # Insert new data
+                for _, row in df.iterrows():
+                    new_data = model_class(
+                        provinsi=row['wilayah'],
+                        year=row['year'],
+                        value=row[indicator],
+                        label_sejahtera=row['label_sejahtera']
+                    )
+                    db.session.add(new_data)
+                
+                db.session.commit()
+                print(f"Imported {len(df)} rows for {indicator}")
         
         print("Data import completed successfully!")
 
