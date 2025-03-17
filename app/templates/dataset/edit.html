@@ -10,8 +10,13 @@ endblock %} {% block content %}
       <p class="mb-1">
         <strong>Indicator:</strong> {{ indicator|replace('_', ' ')|title }}
       </p>
-      <p class="mb-1"><strong>Province:</strong> {{ data.provinsi }}</p>
+      <p class="mb-1"><strong>Region:</strong> {{ data.region }}</p>
       <p class="mb-0"><strong>Year:</strong> {{ data.year }}</p>
+      <p class="mt-3 mb-0">
+        <strong>Note:</strong> Editing this data may trigger model retraining if
+        the indicator is used by the model. Old models will be cleaned up to
+        maintain optimal performance.
+      </p>
     </div>
 
     <form

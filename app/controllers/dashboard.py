@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 from flask_login import login_required
 from app.models.predictions import RegionPrediction
 from app.models.ml_models import TrainedModel
@@ -9,6 +9,12 @@ dashboard_bp = Blueprint('dashboard', __name__)
 @dashboard_bp.route('/')
 @login_required
 def index():
+    # # Get the selected year (default to 'all')
+    # selected_year = request.args.get('year', 'all')
+
+    # Get the selected year (default to '2019')
+    selected_year = request.args.get('year', '2019')
+    
     # Get the best model based on accuracy
     best_model = TrainedModel.query.order_by(TrainedModel.accuracy.desc()).first()
     
@@ -16,7 +22,13 @@ def index():
     prediction_stats = None
     if best_model:
         # Get predictions using the best model
-        predictions = RegionPrediction.query.filter_by(model_id=best_model.id).all()
+        query = RegionPrediction.query.filter_by(model_id=best_model.id)
+        
+        # Filter by year if specified
+        if selected_year != 'all':
+            query = query.filter_by(year=int(selected_year))
+        
+        predictions = query.all()
         
         if predictions:
             # Count predictions by class
@@ -42,4 +54,5 @@ def index():
     
     return render_template('dashboard/index.html', 
                           prediction_stats=prediction_stats,
-                          best_model=best_model) 
+                          best_model=best_model,
+                          selected_year=selected_year) 

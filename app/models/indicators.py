@@ -5,11 +5,11 @@ class BaseIndicator(db.Model):
     __abstract__ = True
     
     id = db.Column(db.Integer, primary_key=True)
-    provinsi = db.Column(db.String(64), index=True)
+    region = db.Column(db.String(64), index=True)
     year = db.Column(db.Integer, index=True)
     
     def __repr__(self):
-        return f'<{self.__class__.__name__} {self.provinsi} {self.year}>'
+        return f'<{self.__class__.__name__} {self.region} {self.year}>'
 
 # Economic Indicators
 class IndeksPembangunanManusia(BaseIndicator):

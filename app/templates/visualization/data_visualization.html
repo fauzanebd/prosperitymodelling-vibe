@@ -1,116 +1,78 @@
 {% extends 'base.html' %}
 
-{% block title %}Data Visualization - Prosperity Analysis{% endblock %}
+{% block title %}Data Visualization (EDA) - Prosperity Analysis{% endblock %}
 
-{% block extra_js %}
+{% block head %}
 <!-- Add Plotly.js -->
 <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
-{% if plot_json %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var plotData = {{ plot_json|safe }};
-        Plotly.newPlot('visualization-plot', plotData);
-    });
-</script>
-{% endif %}
 {% endblock %}
 
 {% block content %}
-<!-- Prosperity Classification Results -->
-{% if prediction_stats %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h4 class="mb-0">Prosperity Classification Results</h4>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="card bg-success text-white mb-3">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Daerah Sejahtera</h5>
-                                <h2 class="display-4">{{ prediction_stats.classes.Sejahtera.count if 'Sejahtera' in prediction_stats.classes else 0 }}</h2>
-                                <p class="lead">{{ "%.1f"|format(prediction_stats.classes.Sejahtera.percentage) if 'Sejahtera' in prediction_stats.classes else 0 }}%</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-warning text-dark mb-3">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Daerah Menengah</h5>
-                                <h2 class="display-4">{{ prediction_stats.classes.Menengah.count if 'Menengah' in prediction_stats.classes else 0 }}</h2>
-                                <p class="lead">{{ "%.1f"|format(prediction_stats.classes.Menengah.percentage) if 'Menengah' in prediction_stats.classes else 0 }}%</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-danger text-white mb-3">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Daerah Tidak Sejahtera</h5>
-                                <h2 class="display-4">{{ prediction_stats.classes['Tidak Sejahtera'].count if 'Tidak Sejahtera' in prediction_stats.classes else 0 }}</h2>
-                                <p class="lead">{{ "%.1f"|format(prediction_stats.classes['Tidak Sejahtera'].percentage) if 'Tidak Sejahtera' in prediction_stats.classes else 0 }}%</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center mt-3">
-                    <p class="lead">Total regions evaluated: {{ prediction_stats.total }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
 <!-- Visualization Controls -->
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">Data Visualization</h4>
+        <h4 class="mb-0">Data Visualization (EDA)</h4>
     </div>
     <div class="card-body">
-        <form method="GET" action="{{ url_for('visualization.data_visualization') }}">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label for="viz_type" class="form-label">Visualization Type</label>
-                        <select class="form-select" id="viz_type" name="viz_type" onchange="this.form.submit()">
-                            <option value="distribution" {% if viz_type == 'distribution' %}selected{% endif %}>Distribution</option>
-                            <option value="trend" {% if viz_type == 'trend' %}selected{% endif %}>Trend Over Time</option>
-                            <option value="regional_comparison" {% if viz_type == 'regional_comparison' %}selected{% endif %}>Regional Comparison</option>
-                            <option value="prosperity_distribution" {% if viz_type == 'prosperity_distribution' %}selected{% endif %}>Prosperity Distribution</option>
-                            <option value="prosperity_trend" {% if viz_type == 'prosperity_trend' %}selected{% endif %}>Prosperity Trend</option>
-                        </select>
+        <form method="GET" action="{{ url_for('visualization.data_visualization') }}" id="visualization-form">
+            <!-- Visualization Type Selection -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Visualization Type</h5>
+                        </div>
+                        <div class="card-body">
+                            <select class="form-select" id="viz_type" name="viz_type" style="text-overflow: unset; white-space: normal;">
+                                {% for viz_key, viz_name in viz_types.items() %}
+                                <option value="{{viz_key}}" {% if viz_key == viz_type %}selected{% endif %}>{{viz_name}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>
-                
-                {% if viz_type in ['distribution', 'trend', 'regional_comparison'] %}
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label for="indicator" class="form-label">Indicator</label>
-                        <select class="form-select" id="indicator" name="indicator" onchange="this.form.submit()">
-                            {% for indicator in indicators %}
-                            <option value="{{ indicator }}" {% if indicator == selected_indicator %}selected{% endif %}>
-                                {{ indicator|replace('_', ' ')|title }}
-                            </option>
-                            {% endfor %}
-                        </select>
+            </div>
+            
+            <!-- Additional Parameters -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Parameters</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Indicator Selection -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="indicator" class="form-label">Indicator</label>
+                                    <select class="form-select" id="indicator" name="indicator">
+                                        {% for indicator in indicators %}
+                                        <option value="{{ indicator }}" {% if indicator == selected_indicator %}selected{% endif %}>
+                                            {{ indicator|replace('_', ' ')|title }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <!-- Year Selection (for distribution, regional comparison, correlation) -->
+                                {% if viz_type in ['distribution', 'regional_comparison', 'label_distribution', 'correlation'] %}
+                                <div class="col-md-6 mb-3">
+                                    <label for="year" class="form-label">Year</label>
+                                    <select class="form-select" id="year" name="year">
+                                        {% for y in range(2019, 2024) %}
+                                        <option value="{{ y }}" {% if y|string == year %}selected{% endif %}>{{ y }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="col-md-12 mt-3">
+                                    <button type="submit" class="btn btn-primary w-100">Generate Visualization</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                {% endif %}
-                
-                {% if viz_type in ['distribution', 'regional_comparison'] %}
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label for="year" class="form-label">Year</label>
-                        <select class="form-select" id="year" name="year" onchange="this.form.submit()">
-                            {% for y in range(2019, 2024) %}
-                            <option value="{{ y }}" {% if y|string == year %}selected{% endif %}>{{ y }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </form>
     </div>
@@ -124,12 +86,14 @@
                 Distribution of {{ selected_indicator|replace('_', ' ')|title }} ({{ year }})
             {% elif viz_type == 'trend' %}
                 Trend of {{ selected_indicator|replace('_', ' ')|title }} Over Time
+            {% elif viz_type == 'label_distribution' %}
+                Label Distribution for {{ selected_indicator|replace('_', ' ')|title }} ({{ year }})
+            {% elif viz_type == 'label_trend' %}
+                Label Trend for {{ selected_indicator|replace('_', ' ')|title }} Over Time
+            {% elif viz_type == 'correlation' %}
+                Correlation Matrix of Indicators ({{ year }})
             {% elif viz_type == 'regional_comparison' %}
                 Regional Comparison of {{ selected_indicator|replace('_', ' ')|title }} ({{ year }})
-            {% elif viz_type == 'prosperity_distribution' %}
-                Distribution of Prosperity Predictions
-            {% elif viz_type == 'prosperity_trend' %}
-                Trend of Prosperity Predictions Over Time
             {% endif %}
         </h4>
     </div>
@@ -143,4 +107,28 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle visualization type change
+    const vizTypeSelect = document.getElementById('viz_type');
+    if (vizTypeSelect) {
+        vizTypeSelect.addEventListener('change', function() {
+            document.getElementById('visualization-form').submit();
+        });
+    }
+    
+    // Handle Plotly rendering
+    let plotJsonData = null;
+    {% if plot_json %}
+    plotJsonData = {{ plot_json|safe }};
+    {% endif %}
+    
+    if (plotJsonData) {
+        Plotly.newPlot('visualization-plot', plotJsonData);
+    }
+});
+</script>
 {% endblock %} 

@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
 from app.models.indicators import INDICATOR_MODELS
+from app.models.thresholds import LabelingThreshold
+from app.migrations.import_data import manual_labeling
 from app import db
 
 def preprocess_indicator_value(indicator_name, value):
     """
-    Preprocess a single indicator value based on the indicator type
+    Preprocess an indicator value (e.g., normalize, scale, etc.)
     
     Parameters:
     -----------
@@ -17,10 +19,11 @@ def preprocess_indicator_value(indicator_name, value):
     Returns:
     --------
     float
-        Preprocessed value
+        Preprocessed value of the indicator
     """
-    # For most indicators, no preprocessing is needed
-    return value
+    # For simplicity, just return the raw value
+    # In practice, you might want to scale/normalize based on the indicator
+    return float(value)
 
 def label_indicator_value(indicator_name, value):
     """
@@ -38,42 +41,57 @@ def label_indicator_value(indicator_name, value):
     str
         Label for the indicator value
     """
-    # Get all values for this indicator to calculate thresholds
-    model_class = INDICATOR_MODELS[indicator_name]
-    all_values = [row.value for row in model_class.query.all()]
+    # Check if there's a manual threshold defined
+    threshold = LabelingThreshold.query.filter_by(indicator=indicator_name).first()
     
-    if not all_values:
-        # If no data exists yet, use a default labeling
-        return 'Menengah'
-    
-    # Special case for indicators where lower values are better
-    reverse = indicator_name in [
-        'tingkat_pengangguran_terbuka',
-        'penduduk_miskin',
-        'kematian_balita',
-        'kematian_bayi',
-        'kematian_ibu',
-        'persentase_balita_stunting'
-    ]
-    
-    # Calculate IQR thresholds
-    q1 = np.percentile(all_values, 25)
-    q3 = np.percentile(all_values, 75)
-    
-    if reverse:
-        if value <= q1:
-            return 'Sejahtera'
-        elif value >= q3:
-            return 'Tidak Sejahtera'
-        else:
-            return 'Menengah'
+    if threshold and threshold.labeling_method == 'manual':
+        # Use manual thresholds by creating a small dataframe with the single value
+        df = pd.DataFrame({indicator_name: [value]})
+        labels, threshold = manual_labeling(df, indicator_name, indicator_name)
+        return labels.iloc[0]
     else:
-        if value >= q3:
-            return 'Sejahtera'
-        elif value <= q1:
-            return 'Tidak Sejahtera'
-        else:
+        # Use IQR method
+        # Get all values for this indicator to calculate thresholds
+        model_class = INDICATOR_MODELS[indicator_name]
+        all_values = [row.value for row in model_class.query.all()]
+        
+        if not all_values:
+            # If no data exists yet, use a default labeling
             return 'Menengah'
+        
+        # Check if there's a threshold record with IQR method
+        is_reverse = False
+        if threshold:
+            is_reverse = threshold.is_reverse
+        else:
+            # Fallback to hard-coded list for backward compatibility
+            is_reverse = indicator_name in [
+                'tingkat_pengangguran_terbuka',
+                'penduduk_miskin',
+                'kematian_balita',
+                'kematian_bayi',
+                'kematian_ibu',
+                'persentase_balita_stunting'
+            ]
+        
+        # Calculate IQR thresholds
+        q1 = np.percentile(all_values, 25)
+        q3 = np.percentile(all_values, 75)
+        
+        if is_reverse:
+            if value <= q1:
+                return 'Sejahtera'
+            elif value >= q3:
+                return 'Tidak Sejahtera'
+            else:
+                return 'Menengah'
+        else:
+            if value >= q3:
+                return 'Sejahtera'
+            elif value <= q1:
+                return 'Tidak Sejahtera'
+            else:
+                return 'Menengah'
 
 def get_all_indicator_data(indicator_name):
     """
@@ -96,7 +114,7 @@ def get_all_indicator_data(indicator_name):
         return pd.DataFrame()
     
     # Convert to DataFrame
-    df = pd.DataFrame([(d.provinsi, d.year, d.value, d.label_sejahtera) for d in data],
+    df = pd.DataFrame([(d.region, d.year, d.value, d.label_sejahtera) for d in data],
                      columns=['wilayah', 'year', indicator_name, 'label_sejahtera'])
     
     return df
@@ -122,7 +140,7 @@ def create_combined_dataset(year):
     for indicator_name in INDICATOR_MODELS:
         model_class = INDICATOR_MODELS[indicator_name]
         if model_class.query.filter_by(year=year).first():
-            base_df = pd.DataFrame([(d.provinsi,) for d in model_class.query.filter_by(year=year).all()],
+            base_df = pd.DataFrame([(d.region,) for d in model_class.query.filter_by(year=year).all()],
                                   columns=['wilayah'])
             break
     
@@ -137,7 +155,7 @@ def create_combined_dataset(year):
         
         if year_data:
             # Convert to DataFrame
-            indicator_df = pd.DataFrame([(d.provinsi, d.value, d.label_sejahtera) for d in year_data],
+            indicator_df = pd.DataFrame([(d.region, d.value, d.label_sejahtera) for d in year_data],
                                        columns=['wilayah', indicator_name, f'label_sejahtera_{indicator_name}'])
             
             # Add the indicator value to the base dataframe

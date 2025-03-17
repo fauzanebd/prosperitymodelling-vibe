@@ -11,6 +11,11 @@ endblock %} {% block content %}
         the current dataset.
       </p>
       <p>The training process may take a few moments to complete.</p>
+      <p>
+        <strong>Note:</strong> This process will keep only the 2 most recent
+        models of each type and delete older models to ensure optimal
+        performance.
+      </p>
     </div>
 
     <form method="POST" action="{{ url_for('dataset.train_models') }}">

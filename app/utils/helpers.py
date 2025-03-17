@@ -6,19 +6,6 @@ def format_indicator_name(indicator_name):
     """Format indicator name for display"""
     return indicator_name.replace('_', ' ').title()
 
-def get_all_provinces():
-    """Get a list of all provinces in Indonesia"""
-    return [
-        'Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Jambi', 
-        'Sumatera Selatan', 'Bengkulu', 'Lampung', 'Kepulauan Bangka Belitung', 
-        'Kepulauan Riau', 'DKI Jakarta', 'Jawa Barat', 'Jawa Tengah', 
-        'DI Yogyakarta', 'Jawa Timur', 'Banten', 'Bali', 'Nusa Tenggara Barat', 
-        'Nusa Tenggara Timur', 'Kalimantan Barat', 'Kalimantan Tengah', 
-        'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara', 
-        'Sulawesi Utara', 'Sulawesi Tengah', 'Sulawesi Selatan', 
-        'Sulawesi Tenggara', 'Gorontalo', 'Sulawesi Barat', 'Maluku', 
-        'Maluku Utara', 'Papua Barat', 'Papua'
-    ]
 
 def is_reverse_indicator(indicator_name):
     """Check if an indicator is reverse (lower values are better)"""

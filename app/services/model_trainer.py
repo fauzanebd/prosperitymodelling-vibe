@@ -214,61 +214,156 @@ def generate_predictions(model_id):
     # Load the model, scaler, and feature names
     model, scaler, feature_names = trained_model.load_model()
     
-    # Get the latest year with data
-    latest_year = 2023  # Default to 2023
+    # Get all available years
+    years = [2019, 2020, 2021, 2022, 2023]
+    all_predictions = []
     
-    # Create a combined dataset for the latest year
-    combined_df = create_combined_dataset(latest_year)
-    if combined_df is None:
-        print(f"No data found for year {latest_year}")
-        return []
+    for year in years:
+        # Create a combined dataset for the year
+        combined_df = create_combined_dataset(year)
+        if combined_df is None:
+            print(f"No data found for year {year}")
+            continue
+        
+        # Prepare data for prediction
+        X, _, _ = prepare_data_for_model(combined_df, 'indeks_pembangunan_manusia')
+        if X is None:
+            print(f"Failed to prepare data for prediction for year {year}")
+            continue
+        
+        # Add year as a feature
+        X['year'] = year
+        
+        # Ensure X has the same features as the model was trained on
+        missing_features = set(feature_names) - set(X.columns)
+        for feature in missing_features:
+            X[feature] = 0  # Fill missing features with 0
+        
+        extra_features = set(X.columns) - set(feature_names)
+        if extra_features:
+            X = X.drop(columns=extra_features)
+        
+        X = X[feature_names]  # Reorder columns to match feature_names
+        
+        # Standardize features
+        X_scaled = scaler.transform(X)
+        
+        # Make predictions
+        if hasattr(model, 'predict_proba'):
+            y_prob = model.predict_proba(X_scaled)
+            y_pred = model.predict(X_scaled)
+        else:
+            y_pred = model.predict(X_scaled)
+            y_prob = np.zeros((len(y_pred), 2))
+            y_prob[np.arange(len(y_pred)), y_pred] = 1
+        
+        # Map predictions to classes
+        class_mapping = {1: 'Sejahtera', 0: 'Menengah'}
+        predicted_classes = [class_mapping[p] for p in y_pred]
+        
+        # Delete existing predictions for this model and year
+        regions = [row['wilayah'] for _, row in combined_df.reset_index().iterrows()]
+        RegionPrediction.query.filter(
+            RegionPrediction.model_id == model_id,
+            RegionPrediction.year == year,
+            RegionPrediction.region.in_(regions)
+        ).delete(synchronize_session=False)
+        
+        # Create RegionPrediction objects
+        predictions = []
+        for i, row in combined_df.reset_index().iterrows():
+            prediction = RegionPrediction(
+                region=row['wilayah'],
+                year=year,
+                model_id=model_id,
+                predicted_class=predicted_classes[i],
+                prediction_probability=y_prob[i, 1] if y_pred[i] == 1 else y_prob[i, 0]
+            )
+            predictions.append(prediction)
+            all_predictions.append(prediction)
+        
+        # Save predictions to database
+        db.session.add_all(predictions)
+        db.session.commit()
     
-    # Prepare data for prediction
-    X, _, _ = prepare_data_for_model(combined_df, 'indeks_pembangunan_manusia')
-    if X is None:
-        print("Failed to prepare data for prediction")
-        return []
+    return all_predictions
+
+def delete_old_models():
+    """
+    Delete all existing models and their associated predictions
     
-    # Ensure X has the same features as the model was trained on
-    missing_features = set(feature_names) - set(X.columns)
-    for feature in missing_features:
-        X[feature] = 0  # Fill missing features with 0
+    Returns:
+    --------
+    int
+        Number of models deleted
+    """
+    # Get all models
+    models = TrainedModel.query.all()
     
-    X = X[feature_names]  # Reorder columns to match feature_names
+    deleted_count = 0
+    for model in models:
+        # Delete predictions associated with this model
+        RegionPrediction.query.filter_by(model_id=model.id).delete()
+        db.session.delete(model)
+        deleted_count += 1
     
-    # Standardize features
-    X_scaled = scaler.transform(X)
-    
-    # Make predictions
-    if hasattr(model, 'predict_proba'):
-        y_prob = model.predict_proba(X_scaled)
-        y_pred = model.predict(X_scaled)
-    else:
-        y_pred = model.predict(X_scaled)
-        y_prob = np.zeros((len(y_pred), 2))
-        y_prob[np.arange(len(y_pred)), y_pred] = 1
-    
-    # Map predictions to classes
-    class_mapping = {1: 'Sejahtera', 0: 'Menengah'}
-    predicted_classes = [class_mapping[p] for p in y_pred]
-    
-    # Create RegionPrediction objects
-    predictions = []
-    for i, row in combined_df.reset_index().iterrows():
-        prediction = RegionPrediction(
-            provinsi=row['wilayah'],
-            year=latest_year,
-            model_id=model_id,
-            predicted_class=predicted_classes[i],
-            prediction_probability=y_prob[i, 1] if y_pred[i] == 1 else y_prob[i, 0]
-        )
-        predictions.append(prediction)
-    
-    # Save predictions to database
-    db.session.add_all(predictions)
+    # Commit changes
     db.session.commit()
     
-    return predictions
+    return deleted_count
+
+def prepare_all_years_data():
+    """
+    Prepare data from all years for model training
+    
+    Returns:
+    --------
+    X : pd.DataFrame
+        Features for model training
+    y : pd.Series
+        Target variable for model training
+    feature_names : list
+        List of feature names
+    """
+    years = [2019, 2020, 2021, 2022, 2023]
+    X_all = pd.DataFrame()
+    y_all = pd.Series(dtype='object')
+    feature_names = None
+    
+    for year in years:
+        # Create a combined dataset for the year
+        combined_df = create_combined_dataset(year)
+        if combined_df is None:
+            print(f"No data found for year {year}")
+            continue
+        
+        # Prepare data for model training
+        X, y, features = prepare_data_for_model(combined_df, 'indeks_pembangunan_manusia')
+        if X is None or y is None:
+            print(f"Failed to prepare data for model training for year {year}")
+            continue
+        
+        # Add year as a feature
+        X['year'] = year
+        
+        # Update feature names
+        if feature_names is None:
+            feature_names = X.columns.tolist()
+        
+        # Append to the combined dataset
+        X_all = pd.concat([X_all, X])
+        y_all = pd.concat([y_all, y])
+    
+    # Handle missing values
+    if X_all.isna().any().any():
+        print("Warning: There are NaN values in the feature matrix.")
+        X_all = X_all.fillna(X_all.mean())
+        
+        # For columns where all values are NaN, fill with 0
+        for col in X_all.columns[X_all.isna().any()]:
+            X_all[col] = X_all[col].fillna(0)
+    
+    return X_all, y_all, feature_names
 
 def retrain_model_if_needed(indicator_name):
     """
@@ -300,20 +395,15 @@ def retrain_model_if_needed(indicator_name):
         if indicator_name not in feature_names:
             return False
     
-    # Get the latest year with data
-    latest_year = 2023  # Default to 2023
-    
-    # Create a combined dataset for the latest year
-    combined_df = create_combined_dataset(latest_year)
-    if combined_df is None:
-        print(f"No data found for year {latest_year}")
-        return False
-    
-    # Prepare data for model training
-    X, y, feature_names = prepare_data_for_model(combined_df, 'indeks_pembangunan_manusia')
+    # Prepare data for model training using all years
+    X, y, feature_names = prepare_all_years_data()
     if X is None or y is None:
         print("Failed to prepare data for model training")
         return False
+    
+    # Delete all existing models
+    deleted_count = delete_old_models()
+    print(f"Deleted {deleted_count} old models")
     
     # Train Random Forest model
     rf_results = train_random_forest(X, y, feature_names)

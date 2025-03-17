@@ -172,3 +172,16 @@ body {
     opacity: 1;
   }
 }
+
+/* Fix for dropdown arrow overlap */
+.form-select {
+  padding-right: 2.5rem !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Specific fix for smaller dropdowns */
+.form-select-sm {
+  padding-right: 2rem !important;
+}

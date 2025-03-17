@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block title %}Model Results Visualization - Prosperity Analysis{% endblock %}
+
+{% block head %}
+<!-- Add Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Prosperity Classification Results -->
+{% if prediction_stats %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Prosperity Classification Results</h4>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-light text-dark me-2">
+                        {% if prediction_type == 'predicted' %}
+                            Model Predictions
+                        {% else %}
+                            Actual Classifications
+                        {% endif %}
+                    </span>
+                    <form method="GET" action="{{ url_for('visualization.model_results_visualization') }}" class="d-flex align-items-center">
+                        <input type="hidden" name="viz_type" value="{{ viz_type }}">
+                        {% if selected_region %}
+                        <input type="hidden" name="region" value="{{ selected_region }}">
+                        {% endif %}
+                        
+                        <div class="d-flex align-items-center me-2">
+                            <label for="prediction_type" class="text-white me-2">Type:</label>
+                            <select class="form-select form-select-sm" id="prediction_type" name="prediction_type" onchange="this.form.submit()" style="width: auto;">
+                                <option value="predicted" {% if prediction_type == 'predicted' %}selected{% endif %}>Predicted</option>
+                                <option value="actual" {% if prediction_type == 'actual' %}selected{% endif %}>Actual</option>
+                            </select>
+                        </div>
+                        
+                        <div class="d-flex align-items-center">
+                            <label for="filter_year" class="text-white me-2">Year:</label>
+                            <select class="form-select form-select-sm" id="filter_year" name="filter_year" onchange="this.form.submit()" style="width: auto;">
+                                {% for y in range(2019, 2024) %}
+                                <option value="{{ y }}" {% if y|string == filter_year %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Daerah Sejahtera</h5>
+                                <h2 class="display-4">{{ prediction_stats.classes.Sejahtera.count if 'Sejahtera' in prediction_stats.classes else 0 }}</h2>
+                                <p class="lead">{{ "%.1f"|format(prediction_stats.classes.Sejahtera.percentage) if 'Sejahtera' in prediction_stats.classes else 0 }}%</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-dark mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Daerah Menengah</h5>
+                                <h2 class="display-4">{{ prediction_stats.classes.Menengah.count if 'Menengah' in prediction_stats.classes else 0 }}</h2>
+                                <p class="lead">{{ "%.1f"|format(prediction_stats.classes.Menengah.percentage) if 'Menengah' in prediction_stats.classes else 0 }}%</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-danger text-white mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Daerah Tidak Sejahtera</h5>
+                                <h2 class="display-4">{{ prediction_stats.classes['Tidak Sejahtera'].count if 'Tidak Sejahtera' in prediction_stats.classes else 0 }}</h2>
+                                <p class="lead">{{ "%.1f"|format(prediction_stats.classes['Tidak Sejahtera'].percentage) if 'Tidak Sejahtera' in prediction_stats.classes else 0 }}%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <p class="lead">
+                        Total regions evaluated: {{ prediction_stats.total }}
+                        {% if filter_year != 'all' %} for year {{ filter_year }}{% endif %}
+                    </p>
+                    <p>
+                        {% if best_model %} Based on best model: {{
+                        best_model.model_type|replace('_', ' ')|title }} (determined using
+                        accuracy: {{ "%.2f"|format(best_model.accuracy * 100) }}%, last
+                        trained at: {{ best_model.created_at.strftime('%Y-%m-%d %H:%M') }})
+                        {% else %} No model information available. {% endif %}
+                      </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- No Prediction Data Available -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-warning text-dark">
+        <h4 class="mb-0">No Prediction Data Available</h4>
+      </div>
+      <div class="card-body">
+        <p class="lead">
+          There are no prediction results available yet. You need to train a model to see results.
+        </p>
+        {% if current_user.is_admin %}
+        <div class="text-center">
+          <a
+            href="{{ url_for('dataset.train_models') }}"
+            class="btn btn-primary"
+          >
+            <i class="fas fa-cogs me-2"></i> Train Models
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Visualization Controls -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">Model Results Visualization</h4>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('visualization.model_results_visualization') }}" id="visualization-form">
+            <!-- Visualization Type Selection -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Visualization Type</h5>
+                        </div>
+                        <div class="card-body">
+                            <select class="form-select" id="viz_type" name="viz_type" style="text-overflow: unset; white-space: normal;">
+                                {% for viz_key, viz_name in viz_types.items() %}
+                                <option value="{{viz_key}}" {% if viz_key == viz_type %}selected{% endif %}>{{viz_name}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional Parameters -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Parameters</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Model Results Parameters -->
+                                <div class="col-md-{% if viz_type == 'region_prediction' %}12{% else %}6{% endif %} mb-3">
+                                    <label for="result_year" class="form-label">Year</label>
+                                    <select class="form-select" id="result_year" name="result_year">
+                                        {% for y in range(2019, 2024) %}
+                                        <option value="{{ y }}" {% if y|string == result_year %}selected{% endif %}>{{ y }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <!-- Hide result_type for region_prediction -->
+                                {% if viz_type != 'region_prediction' %}
+                                <div class="col-md-6 mb-3">
+                                    <label for="result_type" class="form-label">Result Type</label>
+                                    <select class="form-select" id="result_type" name="result_type">
+                                        <option value="predicted" {% if result_type == 'predicted' %}selected{% endif %}>Predicted</option>
+                                        <option value="actual" {% if result_type == 'actual' %}selected{% endif %}>Actual</option>
+                                        {% if viz_type == 'prosperity_comparison' %}
+                                        <option value="comparison" {% if result_type == 'comparison' %}selected{% endif %}>Comparison</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Region Selection (for region prediction) -->
+                                {% if viz_type == 'region_prediction' %}
+                                <div class="col-md-12 mb-3">
+                                    <label for="region" class="form-label">Region</label>
+                                    <select class="form-select" id="region" name="region" required>
+                                        <option value="" {% if not selected_region %}selected{% endif %} disabled>Select a region</option>
+                                        {% for region in regions %}
+                                        <option value="{{ region }}" {% if region == selected_region %}selected{% endif %}>
+                                            {{ region }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="col-md-12 mt-3">
+                                    <button type="submit" class="btn btn-primary w-100">Generate Visualization</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Visualization Display -->
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h4 class="mb-0">
+            {% if viz_type == 'prosperity_distribution' %}
+                Distribution of {% if result_type == 'predicted' %}Predicted{% elif result_type == 'actual' %}Actual{% endif %} Prosperity 
+                ({{ result_year }})
+            {% elif viz_type == 'prosperity_trend' %}
+                Trend of {% if result_type == 'predicted' %}Predicted{% elif result_type == 'actual' %}Actual{% endif %} Prosperity Over Time
+            {% elif viz_type == 'prosperity_comparison' %}
+                Comparison of Predicted vs Actual Prosperity
+                ({{ result_year }})
+            {% elif viz_type == 'region_prediction' %}
+                Prosperity Analysis for {{ selected_region }}
+            {% endif %}
+        </h4>
+    </div>
+    <div class="card-body">
+        {% if viz_type == 'region_prediction' %}
+            <!-- Use cards for direct comparison -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Actual IPM Status</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <h2 class="display-5 mb-3">{{ selected_region }}</h2>
+                            {% if actual_ipm_value is not none %}
+                                <div class="mb-3">
+                                    <span class="badge {% if actual_ipm_class == 'Sejahtera' %}bg-success{% elif actual_ipm_class == 'Menengah' %}bg-warning{% else %}bg-danger{% endif %} p-2 fs-5">
+                                        {{ actual_ipm_class }}
+                                    </span>
+                                </div>
+                                <p class="lead">IPM Value: {{ "%.2f"|format(actual_ipm_value) }}</p>
+                                <p class="text-muted">Data from {{ result_year }}</p>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    No actual IPM data available for this region and year.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Predicted IPM Status</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <h2 class="display-5 mb-3">{{ selected_region }}</h2>
+                            {% if predicted_ipm_class %}
+                                <div class="mb-3">
+                                    <span class="badge {% if predicted_ipm_class == 'Sejahtera' %}bg-success{% elif predicted_ipm_class == 'Menengah' %}bg-warning{% else %}bg-danger{% endif %} p-2 fs-5">
+                                        {{ predicted_ipm_class }}
+                                    </span>
+                                </div>
+                                <p class="lead">Prediction Confidence: {{ "%.1f"|format(prediction_probability * 100) }}%</p>
+                                <p class="text-muted">Predicted using {{ best_model.model_type|replace('_', ' ')|title }}</p>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    No prediction available for this region and year.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Add indicators used in prediction if available -->
+            {% if indicators_data %}
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Key Indicators for {{ selected_region }} ({{ result_year }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for indicator in indicators_data %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ indicator.name|replace('_', ' ')|title }}</h6>
+                                    <p class="card-text display-6">{{ "%.2f"|format(indicator.value) }}</p>
+                                    {% if indicator.importance %}
+                                        <div class="progress" title="Feature importance: {{ "%.2f"|format(indicator.importance*100) }}%">
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ indicator.importance*100 }}%" 
+                                                aria-valuenow="{{ indicator.importance*100 }}" aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Feature importance: {{ "%.2f"|format(indicator.importance*100) }}%</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Historical trend plot -->
+            {% if plot_json %}
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Historical IPM Trend for {{ selected_region }}</h5>
+                </div>
+                <div class="card-body">
+                    <div id="visualization-plot" style="width: 100%; min-height: 500px;"></div>
+                </div>
+            </div>
+            {% endif %}
+            
+        {% elif plot_json %}
+            <div id="visualization-plot" style="width: 100%; min-height: 600px;"></div>
+        {% else %}
+            <div class="alert alert-warning">
+                No data available for the selected visualization.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle visualization type change
+    const vizTypeSelect = document.getElementById('viz_type');
+    if (vizTypeSelect) {
+        vizTypeSelect.addEventListener('change', function() {
+            document.getElementById('visualization-form').submit();
+        });
+    }
+    
+    // Handle Plotly rendering
+    let plotJsonData = null;
+    {% if plot_json %}
+    plotJsonData = {{ plot_json|safe }};
+    {% endif %}
+    
+    if (plotJsonData) {
+        Plotly.newPlot('visualization-plot', plotJsonData);
+    }
+});
+</script>
+{% endblock %} 

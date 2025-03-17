@@ -34,23 +34,40 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="model_type" class="form-label">Model Type</label>
-                        <select class="form-select" id="model_type" name="model_type" onchange="this.form.submit()">
+                        <select class="form-select" id="model_type" name="model_type">
                             <option value="random_forest" {% if model_type == 'random_forest' %}selected{% endif %}>Random Forest</option>
                             <option value="logistic_regression" {% if model_type == 'logistic_regression' %}selected{% endif %}>Logistic Regression</option>
                         </select>
                     </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="evaluation_year" class="form-label">Evaluation Year</label>
+                        <select class="form-select" id="evaluation_year" name="evaluation_year">
+                            <option value="all" {% if evaluation_year == 'all' %}selected{% endif %}>All Years</option>
+                            {% for y in range(2019, 2024) %}
+                            <option value="{{ y }}" {% if y|string == evaluation_year %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">Update</button>
                 </div>
             </div>
         </form>
     </div>
 </div>
 
+{% if metrics %}
 <!-- Performance Metrics -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-success text-white">
-                <h4 class="mb-0">Performance Metrics - {{ model_type|replace('_', ' ')|title }}</h4>
+                <h4 class="mb-0">Performance Metrics - {{ model_type|replace('_', ' ')|title }} 
+                    {% if evaluation_year != 'all' %}({{ evaluation_year }}){% else %}(All Years){% endif %}
+                </h4>
             </div>
             <div class="card-body">
                 <div class="row">
@@ -128,7 +145,7 @@
     <div class="col-12 mb-4">
         <div class="card">
             <div class="card-header bg-info text-white">
-                <h4 class="mb-0">Confusion Matrix</h4>
+                <h4 class="mb-0">Confusion Matrix {% if evaluation_year != 'all' %}({{ evaluation_year }}){% endif %}</h4>
             </div>
             <div class="card-body d-flex justify-content-center">
                 {% if confusion_matrix_json %}
@@ -162,4 +179,31 @@
         </div>
     </div>
 </div>
+{% else %}
+<!-- No Model Data Available -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-warning text-dark">
+        <h4 class="mb-0">No Model Data Available</h4>
+      </div>
+      <div class="card-body">
+        <p class="lead">
+          There are no models trained yet. You need to train a model to view performance metrics and visualizations.
+        </p>
+        {% if current_user.is_admin %}
+        <div class="text-center">
+          <a
+            href="{{ url_for('dataset.train_models') }}"
+            class="btn btn-primary"
+          >
+            <i class="fas fa-cogs me-2"></i> Train Models
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

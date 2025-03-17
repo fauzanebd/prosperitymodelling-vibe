@@ -20,7 +20,7 @@
     <!-- Custom CSS -->
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/style.css') }}"
+      href="{{ url_for('static', filename='css/custom.css') }}"
     />
 
     {% block head %}{% endblock %} {% block extra_css %}{% endblock %}
@@ -101,15 +101,22 @@
                 <li>
                   <a
                     class="dropdown-item"
-                    href="{{ url_for('visualization.model_performance') }}"
-                    >Model Performance</a
+                    href="{{ url_for('visualization.data_visualization') }}"
+                    ><i class="fas fa-search"></i> Data Visualization (EDA)</a
                   >
                 </li>
                 <li>
                   <a
                     class="dropdown-item"
-                    href="{{ url_for('visualization.data_visualization') }}"
-                    >Data Visualization</a
+                    href="{{ url_for('visualization.model_performance') }}"
+                    ><i class="fas fa-chart-line"></i> Model Performance</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('visualization.model_results_visualization') }}"
+                    ><i class="fas fa-chart-pie"></i> Model Results</a
                   >
                 </li>
               </ul>
@@ -189,7 +196,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
 
     {% block extra_js %}{% endblock %}
   </body>

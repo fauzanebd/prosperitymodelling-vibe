@@ -70,8 +70,17 @@ endblock %} {% block content %}
 <div class="row">
   <div class="col-12">
     <div class="card">
-      <div class="card-header bg-success text-white">
+      <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
         <h4 class="mb-0">Prosperity Classification Results</h4>
+        <form method="GET" action="{{ url_for('dashboard.index') }}" class="d-flex align-items-center">
+          <label for="year" class="text-white me-2">Year:</label>
+          <select class="form-select form-select-sm" id="year" name="year" onchange="this.form.submit()" style="width: auto;">
+            <!-- <option value="all" {% if selected_year == 'all' %}selected{% endif %}>All Years</option> -->
+            {% for y in range(2019, 2024) %}
+            <option value="{{ y }}" {% if selected_year == y|string %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </form>
       </div>
       <div class="card-body">
         <div class="row">
@@ -126,6 +135,7 @@ endblock %} {% block content %}
         <div class="text-center mt-3">
           <p class="lead">
             Total regions evaluated: {{ prediction_stats.total }}
+            {% if selected_year != 'all' %} for year {{ selected_year }}{% endif %}
           </p>
           <p>
             {% if best_model %} Based on best model: {{

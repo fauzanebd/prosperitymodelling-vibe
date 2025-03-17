@@ -1,59 +1,48 @@
 In this project, deriving from the prosperity analysis notebook file, i want you to create a flask web with interface where i can:
 
-1. Add new data for new region, determine whether that region ipm index and determine where that region falls in which indeks pembangunan manusia class. (i actually dont know if i add new data like this should i retrain the model? or should i just use the model that already trained using current existing data and upcoming data will just used for inference? or should user pick? please suggest best way to do this)
-2. Edit existing data,(and retrain the model?)
-3. See existing data as table (this can be a huge page with dropdown where dropdown option is indicator type), use pagination and maybe add filter?
-4. See visualization dashboard:
-    1. model performance comparation dashboard, has dropdown so user can pick between random forest/logistic regression and see the performance numbers and visualization graphs (like accuracy, time to train, precision, recall, f1score, confusion matrix, training details, etc)
-    2. data visualization dashboard, probably add all the visualization in this notebook, its up to u to think whats the best? separate page for different visualization type or one page with dropdowns
-    3. at data visualization dashboard, add like card on top bar that declare the outline of classification result, probably something like:
-    Daerah yang dievaluasi: ...
-        
-        Daerah Sejahtera: …. (percentage and amount)
-        
-        Daerah Tidak sejahtera: …. (percentage and amount)
-        
-        Daerah Menengah: …. (percentage and amount)
-        
-        of course just show the card if there is data, because frm the notebook itself from evaluation all existing region only have sejahtera and menengah? 
-        
+1.  Add new data for new region, determine whether that region ipm index and determine where that region falls in which indeks pembangunan manusia class. (i actually dont know if i add new data like this should i retrain the model? or should i just use the model that already trained using current existing data and upcoming data will just used for inference? or should user pick? please suggest best way to do this)
+2.  Edit existing data,(and retrain the model?)
+3.  See existing data as table (this can be a huge page with dropdown where dropdown option is indicator type), use pagination and maybe add filter?
+4.  See visualization dashboard:
+    1.  model performance comparation dashboard, has dropdown so user can pick between random forest/logistic regression and see the performance numbers and visualization graphs (like accuracy, time to train, precision, recall, f1score, confusion matrix, training details, etc)
+    2.  data visualization dashboard, probably add all the visualization in this notebook, its up to u to think whats the best? separate page for different visualization type or one page with dropdowns
+    3.  at data visualization dashboard, add like card on top bar that declare the outline of classification result, probably something like:
+        Daerah yang dievaluasi: ...
+            Daerah Sejahtera: …. (percentage and amount)
+
+            Daerah Tidak sejahtera: …. (percentage and amount)
+
+            Daerah Menengah: …. (percentage and amount)
+
+            of course just show the card if there is data, because frm the notebook itself from evaluation all existing region only have sejahtera and menengah?
 
 Technical detail
 
 ## Database Migration
 
 - create db table for each used indicator. Schema will be like this:
-    
-    provinsi, year, {nama_indicator}
-    
+  region, year, {nama_indicator}
 - Modify the notebook script so that after executing specialized preprocessing functions, the data saved as csv and then add the csv to be inserted at migration 01? so initial migration should be
-    
-    initiating schemas and inserting the existing data
-    
+  initiating schemas and inserting the existing data
 
 ## Web Setup
 
 - flask project, use simple username password auth
 - page:
-    - Login
-        - the login page is poc just give 1 admin username-pass set and 1 user
-    - Dataset control
-        - showing the indicators data available
-        - table view with dropdown
-        - non admin user only have read only permission
-        - admin can edit/insert new indicator data
-    - data/result visualization
-        
-        already specified in above brief
-        
-    
+  - Login
+    - the login page is poc just give 1 admin username-pass set and 1 user
+  - Dataset control
+    - showing the indicators data available
+    - table view with dropdown
+    - non admin user only have read only permission
+    - admin can edit/insert new indicator data
+  - data/result visualization
+    already specified in above brief
 
 ## Deployment
 
 - setup docker file that will pull postgres image automatically? using something like depends on or what (i forgot if im not mistaken theres mechanism for docker to auto pull image that became its dependency?
 - auto run the migration at init (thats why i need the script to insert the csv at beginning or should we just add the data from processing result to migration script? i dont think the data for 2019-2023 that big tho?)
-    
-    
 
 ## Notes
 

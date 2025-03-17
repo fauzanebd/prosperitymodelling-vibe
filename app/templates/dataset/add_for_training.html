@@ -1,0 +1,105 @@
+{% extends 'base.html' %} {% block title %}Add Data for Training - Prosperity
+Analysis{% endblock %} {% block content %}
+<div class="card">
+  <div class="card-header bg-primary text-white">
+    <h4 class="mb-0">Add Complete Data for Model Training</h4>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info">
+      <p>
+        <strong>Note:</strong> This form is for adding complete data for a
+        region to be used in model training.
+      </p>
+      <p>
+        You need to provide values for
+        <strong>all indicators</strong> (including "Indeks Pembangunan Manusia")
+        for <strong>all years</strong> (2019-2023).
+      </p>
+      <p>
+        This will retrain the model after the data is added and clean up old
+        models to maintain optimal performance.
+      </p>
+      <p class="text-danger">
+        <strong>Important:</strong> All fields are required. You must enter data
+        for all indicators and all years to maintain data consistency.
+      </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('dataset.add_for_training') }}">
+      <div class="mb-3">
+        <label for="region" class="form-label">Region</label>
+        <input
+          type="text"
+          class="form-control"
+          id="region"
+          name="region"
+          required
+        />
+        <div class="form-text">
+          Enter the region name exactly as it appears in the dataset.
+        </div>
+      </div>
+
+      {% for year in range(2019, 2024) %}
+      <div class="card mb-3">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">{{ year }} Data</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for indicator in indicators %}
+            <div class="col-md-6 mb-3">
+              <label for="value_{{ year }}_{{ indicator }}" class="form-label"
+                >{{ indicator|replace('_', ' ')|title }}</label
+              >
+              <input
+                type="number"
+                class="form-control"
+                id="value_{{ year }}_{{ indicator }}"
+                name="value_{{ year }}_{{ indicator }}"
+                step="0.01"
+                required
+              />
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="d-flex justify-content-between">
+        <a href="{{ url_for('dataset.index') }}" class="btn btn-secondary"
+          >Cancel</a
+        >
+        <button type="submit" class="btn btn-primary">
+          Add Data and Retrain Model
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  // Fetch regions for autocomplete
+  document.addEventListener("DOMContentLoaded", function () {
+    fetch('{{ url_for("dataset.get_regions") }}')
+      .then((response) => response.json())
+      .then((regions) => {
+        const regionInput = document.getElementById("region");
+        const datalist = document.createElement("datalist");
+        datalist.id = "regions-list";
+
+        regions.forEach((region) => {
+          const option = document.createElement("option");
+          option.value = region;
+          datalist.appendChild(option);
+        });
+
+        document.body.appendChild(datalist);
+        regionInput.setAttribute("list", "regions-list");
+      })
+      .catch((error) => console.error("Error fetching regions:", error));
+  });
+</script>
+{% endblock %} {% endblock %}

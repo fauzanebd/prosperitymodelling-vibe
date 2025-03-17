@@ -5,6 +5,8 @@ import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.models.thresholds import LabelingThreshold
+
 # Add the parent directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
@@ -12,6 +14,74 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 from app import create_app, db
 from app.models.indicators import INDICATOR_MODELS
 from app.lib import load_data, INDICATOR_PROCESSORS, label_iqr
+
+def manual_labeling(df, indicator, column_name):
+    """
+    Apply manual thresholds for specific indicators
+    
+    Args:
+        df: DataFrame containing the indicator data
+        indicator: Name of the indicator
+        column_name: Column name to apply thresholds to
+    
+    Returns:
+        Series with the manual labels
+        LabelingThreshold object
+    """
+    labels = pd.Series(index=df.index, dtype='object')
+    
+    if indicator == 'indeks_pembangunan_manusia':
+        # Sejahtera if > 70, Menengah if 60-70, else Tidak Sejahtera
+        labels = pd.Series(index=df.index, dtype='object')
+        labels[df[column_name] > 70] = 'Sejahtera'
+        labels[(df[column_name] >= 60) & (df[column_name] <= 70)] = 'Menengah'
+        labels[df[column_name] < 60] = 'Tidak Sejahtera'
+
+        threshold_data = {
+            'indicator': indicator,
+            'sejahtera_threshold': "> 70",
+            'menengah_threshold': "60-70",
+            'tidak_sejahtera_threshold': "< 60",
+            'labeling_method': 'manual',
+            'is_reverse': False
+        }
+        threshold = LabelingThreshold(**threshold_data)
+    
+    
+    elif indicator == 'tingkat_pengangguran_terbuka':
+        # Sejahtera if < 6.75, Menengah if 6.5-7.0, else Tidak Sejahtera
+        labels[df[column_name] < 6.75] = 'Sejahtera'
+        labels[(df[column_name] >= 6.5) & (df[column_name] <= 7.0)] = 'Menengah'
+        labels[df[column_name] > 7.0] = 'Tidak Sejahtera'
+
+        threshold_data = {
+            'indicator': indicator,
+            'sejahtera_threshold': "< 6.75",
+            'menengah_threshold': "6.5-7.0",
+            'tidak_sejahtera_threshold': "> 7.0",
+            'labeling_method': 'manual',
+            'is_reverse': True
+        }
+        threshold = LabelingThreshold(**threshold_data)
+    
+    elif indicator == 'persentase_balita_stunting':
+        # Sejahtera if < 20, Menengah if 20-29, else Tidak Sejahtera
+        labels[df[column_name] < 20] = 'Sejahtera'
+        labels[(df[column_name] >= 20) & (df[column_name] <= 29)] = 'Menengah'
+        labels[df[column_name] > 29] = 'Tidak Sejahtera'
+
+        threshold_data = {
+            'indicator': indicator,
+            'sejahtera_threshold': "< 20",
+            'menengah_threshold': "20-29",
+            'tidak_sejahtera_threshold': "> 29",
+            'labeling_method': 'manual',
+            'is_reverse': True
+        }
+        threshold = LabelingThreshold(**threshold_data)
+    
+    
+    return labels, threshold
 
 def import_data():
     """Import data from CSV files into the database"""
@@ -122,6 +192,7 @@ def import_data():
         
         # Apply IQR labeling
         all_data_final = {}
+        thresholds = []
         for indicator, df in all_data.items():
             # Special case for indicators where lower values are better
             reverse = indicator in [
@@ -133,10 +204,21 @@ def import_data():
                 'persentase_balita_stunting'
             ]
             
-            # Apply IQR labeling
+            # Apply labeling based on indicator
             df_labeled = df.copy()
-            df_labeled['label_sejahtera'] = label_iqr(df_labeled, indicator, reverse=reverse)
+            
+            # Use manual labeling for special indicators
+            if indicator in ['indeks_pembangunan_manusia', 'tingkat_pengangguran_terbuka', 'persentase_balita_stunting']:
+                df_labeled['label_sejahtera'], threshold = manual_labeling(df_labeled, indicator, indicator)
+            else:
+                # Use IQR labeling for other indicators
+                df_labeled['label_sejahtera'], threshold = label_iqr(indicator, df_labeled, indicator, reverse=reverse)
+            
+            thresholds.append(threshold)
             all_data_final[indicator] = df_labeled
+        
+        db.session.add_all(thresholds)
+        db.session.commit()
         
         # Import data into the database
         for indicator, df in all_data_final.items():
@@ -149,7 +231,7 @@ def import_data():
                 # Insert new data
                 for _, row in df.iterrows():
                     new_data = model_class(
-                        provinsi=row['wilayah'],
+                        region=row['wilayah'],
                         year=row['year'],
                         value=row[indicator],
                         label_sejahtera=row['label_sejahtera']

@@ -1,0 +1,85 @@
+{% extends 'base.html' %} {% block title %}Add Data for Inference - Prosperity
+Analysis{% endblock %} {% block content %}
+<div class="card">
+  <div class="card-header bg-primary text-white">
+    <h4 class="mb-0">Add Data for Inference</h4>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info">
+      <p>
+        <strong>Note:</strong> This form is for adding data for a new region to
+        predict its prosperity status.
+      </p>
+      <p>
+        You need to provide values for all indicators except for "Indeks
+        Pembangunan Manusia" (which is the target variable).
+      </p>
+      <p>
+        The system will use the best performing model (highest accuracy) to
+        generate predictions for this region.
+      </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('dataset.add_for_inference') }}">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="region" class="form-label">Region</label>
+          <input
+            type="text"
+            class="form-control"
+            id="region"
+            name="region"
+            required
+          />
+          <div class="form-text">
+            Enter the name of the new region you want to analyze.
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label for="year" class="form-label">Year</label>
+          <select class="form-select" id="year" name="year" required>
+            <option value="" selected disabled>Select a year</option>
+            {% for year in range(2019, 2024) %}
+            <option value="{{ year }}">{{ year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">Indicator Values</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for indicator in indicators %}
+            <div class="col-md-6 mb-3">
+              <label for="value_{{ indicator }}" class="form-label"
+                >{{ indicator|replace('_', ' ')|title }}</label
+              >
+              <input
+                type="number"
+                class="form-control"
+                id="value_{{ indicator }}"
+                name="value_{{ indicator }}"
+                step="0.01"
+                required
+              />
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between">
+        <a href="{{ url_for('dataset.index') }}" class="btn btn-secondary"
+          >Cancel</a
+        >
+        <button type="submit" class="btn btn-primary">
+          Add Data and Generate Prediction
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

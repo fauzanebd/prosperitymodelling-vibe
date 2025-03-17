@@ -73,61 +73,26 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Province autocomplete for add data form
-  var provinceInput = document.getElementById("province");
-  if (provinceInput) {
-    // This would be replaced with actual province data from the backend
+  // Region autocomplete for add data form
+  var regionInput = document.getElementById("region");
+  if (regionInput) {
+    // This would be replaced with actual region data from the backend
     // For now, we'll use a placeholder array
-    var provinces = [
-      "Aceh",
-      "Sumatera Utara",
-      "Sumatera Barat",
-      "Riau",
-      "Jambi",
-      "Sumatera Selatan",
-      "Bengkulu",
-      "Lampung",
-      "Kepulauan Bangka Belitung",
-      "Kepulauan Riau",
-      "DKI Jakarta",
-      "Jawa Barat",
-      "Jawa Tengah",
-      "DI Yogyakarta",
-      "Jawa Timur",
-      "Banten",
-      "Bali",
-      "Nusa Tenggara Barat",
-      "Nusa Tenggara Timur",
-      "Kalimantan Barat",
-      "Kalimantan Tengah",
-      "Kalimantan Selatan",
-      "Kalimantan Timur",
-      "Kalimantan Utara",
-      "Sulawesi Utara",
-      "Sulawesi Tengah",
-      "Sulawesi Selatan",
-      "Sulawesi Tenggara",
-      "Gorontalo",
-      "Sulawesi Barat",
-      "Maluku",
-      "Maluku Utara",
-      "Papua Barat",
-      "Papua",
-    ];
+    var regions = [];
 
     // Simple autocomplete functionality
-    provinceInput.addEventListener("input", function () {
+    regionInput.addEventListener("input", function () {
       var val = this.value.toLowerCase();
-      var datalist = document.getElementById("provinceList");
+      var datalist = document.getElementById("regionList");
 
       // Clear existing options
       datalist.innerHTML = "";
 
-      // Add matching provinces
-      provinces.forEach(function (province) {
-        if (province.toLowerCase().includes(val)) {
+      // Add matching regions
+      regions.forEach(function (region) {
+        if (region.toLowerCase().includes(val)) {
           var option = document.createElement("option");
-          option.value = province;
+          option.value = region;
           datalist.appendChild(option);
         }
       });
