@@ -141,7 +141,6 @@ ipython_config.py
 out/
 
 # Project specific
-*.csv
 *.xlsx
 *.xls
 !requirements.txt
