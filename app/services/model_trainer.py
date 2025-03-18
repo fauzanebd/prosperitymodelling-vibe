@@ -81,9 +81,9 @@ def train_random_forest(X, y, feature_names):
         'feature_names': feature_names,
         'metrics': {
             'accuracy': report['accuracy'],
-            'precision': report['1']['precision'] if '1' in report else 0,
-            'recall': report['1']['recall'] if '1' in report else 0,
-            'f1_score': report['1']['f1-score'] if '1' in report else 0,
+            'precision': report['macro avg']['precision'] if 'macro avg' in report else 0,
+            'recall': report['macro avg']['recall'] if 'macro avg' in report else 0,
+            'f1_score': report['macro avg']['f1-score'] if 'macro avg' in report else 0,
             'test_accuracy': test_accuracy,
             'training_time': training_time,
             'confusion_matrix': cm,
@@ -135,7 +135,8 @@ def train_logistic_regression(X, y, feature_names):
         penalty='l2',
         solver='lbfgs',
         max_iter=2000,  # Increased from 1000 to 2000 to match notebook
-        random_state=42
+        random_state=42,
+        multi_class='multinomial'  # Support multiclass classification
     )
     
     # Standardize features
@@ -176,9 +177,9 @@ def train_logistic_regression(X, y, feature_names):
         'feature_names': feature_names,
         'metrics': {
             'accuracy': report['accuracy'],
-            'precision': report['1']['precision'] if '1' in report else 0,
-            'recall': report['1']['recall'] if '1' in report else 0,
-            'f1_score': report['1']['f1-score'] if '1' in report else 0,
+            'precision': report['macro avg']['precision'] if 'macro avg' in report else 0,
+            'recall': report['macro avg']['recall'] if 'macro avg' in report else 0,
+            'f1_score': report['macro avg']['f1-score'] if 'macro avg' in report else 0,
             'test_accuracy': test_accuracy,
             'training_time': training_time,
             'confusion_matrix': cm,
@@ -290,17 +291,45 @@ def generate_predictions(model_id):
         X_scaled = scaler.transform(X)
         
         # Make predictions
+        y_pred = model.predict(X_scaled)
+        
+        # Get prediction probabilities if available
         if hasattr(model, 'predict_proba'):
             y_prob = model.predict_proba(X_scaled)
-            y_pred = model.predict(X_scaled)
+            
+            # Check if y_prob has enough columns for all classes
+            if y_prob.shape[1] <= int(y_pred.max()):
+                # Not enough columns, create a new array with more columns
+                new_y_prob = np.zeros((len(y_pred), int(y_pred.max()) + 1))
+                # Copy existing probabilities
+                for i in range(min(y_prob.shape[1], new_y_prob.shape[1])):
+                    new_y_prob[:, i] = y_prob[:, i]
+                # Set the probability for the predicted class to 1.0
+                for i, pred in enumerate(y_pred):
+                    new_y_prob[i, int(pred)] = 1.0
+                y_prob = new_y_prob
+            
+            # Calculate prediction probabilities
+            prediction_probabilities = []
+            for i, pred in enumerate(y_pred):
+                pred_int = int(pred)
+                if pred_int < y_prob.shape[1]:
+                    prediction_probabilities.append(y_prob[i, pred_int])
+                else:
+                    prediction_probabilities.append(1.0)
         else:
-            y_pred = model.predict(X_scaled)
-            y_prob = np.zeros((len(y_pred), 2))
-            y_prob[np.arange(len(y_pred)), y_pred] = 1
+            # If model doesn't support probabilities, create a probability array
+            # Create a zeros array with enough columns for all classes 
+            max_class = max(2, int(y_pred.max()))  # At least 3 columns (0, 1, 2) or more if needed
+            prediction_probabilities = []
+            for i, pred in enumerate(y_pred):
+                # Set probability 1.0 for the predicted class
+                pred_int = int(pred)
+                prediction_probabilities.append(1.0)
         
         # Map predictions to classes
-        class_mapping = {1: 'Sejahtera', 0: 'Menengah'}
-        predicted_classes = [class_mapping[p] for p in y_pred]
+        class_mapping = {2: 'Sejahtera', 1: 'Menengah', 0: 'Tidak Sejahtera'}
+        predicted_classes = [class_mapping.get(int(pred), 'Menengah') for pred in y_pred]
         
         # Delete existing predictions for this model and year
         regions = [row['wilayah'] for _, row in combined_df.reset_index().iterrows()]
@@ -318,7 +347,7 @@ def generate_predictions(model_id):
                 year=year,
                 model_id=model_id,
                 predicted_class=predicted_classes[i],
-                prediction_probability=y_prob[i, 1] if y_pred[i] == 1 else y_prob[i, 0]
+                prediction_probability=prediction_probabilities[i]
             )
             predictions.append(prediction)
             all_predictions.append(prediction)

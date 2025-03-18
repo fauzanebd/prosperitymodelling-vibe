@@ -41,7 +41,8 @@ Analysis{% endblock %} {% block content %}
           required
         />
         <div class="form-text">
-          Enter the region name exactly as it appears in the dataset.
+          Enter the name of the new region you want to add to the training
+          dataset.
         </div>
       </div>
 
@@ -87,27 +88,6 @@ Analysis{% endblock %} {% block content %}
 {% endblock %} {% block extra_js %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // Fetch regions for autocomplete
-    fetch("{{ url_for('dataset.get_regions') }}")
-      .then((response) => response.json())
-      .then((regions) => {
-        const regionInput = document.getElementById("region");
-
-        // Create datalist for autocomplete
-        const datalist = document.createElement("datalist");
-        datalist.id = "regions-list";
-
-        regions.forEach((region) => {
-          const option = document.createElement("option");
-          option.value = region;
-          datalist.appendChild(option);
-        });
-
-        document.body.appendChild(datalist);
-        regionInput.setAttribute("list", "regions-list");
-      })
-      .catch((error) => console.error("Error fetching regions:", error));
-
     // Form validation
     const form = document.getElementById("training-form");
     if (form) {

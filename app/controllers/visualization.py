@@ -65,7 +65,7 @@ def model_performance():
                     y_pred = []
                     
                     # Map class names to numeric values for metrics calculation
-                    class_mapping = {'Sejahtera': 1, 'Menengah': 0, 'Tidak Sejahtera': -1}
+                    class_mapping = {'Sejahtera': 2, 'Menengah': 1, 'Tidak Sejahtera': 0}
                     
                     # Collect actual and predicted classes for each region
                     for prediction in predictions:

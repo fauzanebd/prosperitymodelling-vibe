@@ -299,7 +299,7 @@ def prepare_data_for_model(combined_df, target_indicator):
         return None, None, None
     
     # Create the target variable
-    y = df[target_label_col].map({'Sejahtera': 1, 'Menengah': 0, 'Tidak Sejahtera': 0})
+    y = df[target_label_col].map({'Sejahtera': 2, 'Menengah': 1, 'Tidak Sejahtera': 0})
     
     # Create the feature matrix
     # Drop non-feature columns (wilayah, label columns, and the target indicator)

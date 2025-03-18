@@ -7,6 +7,7 @@ from app.services.data_processor import preprocess_indicator_value, label_indica
 from app.services.model_trainer import retrain_model_if_needed, generate_predictions, delete_old_models
 from sqlalchemy import func
 import pandas as pd
+import numpy as np
 
 dataset_bp = Blueprint('dataset', __name__)
 
@@ -172,26 +173,43 @@ def add_for_inference():
                     X_scaled = scaler.transform(X)
                     
                     # Make prediction
-                    import numpy as np
                     if hasattr(model, 'predict_proba'):
                         y_prob = model.predict_proba(X_scaled)
                         y_pred = model.predict(X_scaled)
+                        
+                        # Check if y_prob has enough columns for all classes
+                        if y_prob.shape[1] <= int(y_pred.max()):
+                            # Not enough columns, create a new array with more columns
+                            new_y_prob = np.zeros((len(y_pred), int(y_pred.max()) + 1))
+                            # Copy existing probabilities
+                            for i in range(min(y_prob.shape[1], new_y_prob.shape[1])):
+                                new_y_prob[:, i] = y_prob[:, i]
+                            # Set the probability for the predicted class to 1.0
+                            for i, pred in enumerate(y_pred):
+                                new_y_prob[i, int(pred)] = 1.0
+                            y_prob = new_y_prob
                     else:
                         y_pred = model.predict(X_scaled)
-                        y_prob = np.zeros((len(y_pred), 2))
-                        y_prob[np.arange(len(y_pred)), y_pred] = 1
+                        # Create a zeros array with enough columns for all classes
+                        max_class = 2  # For Sejahtera (0, 1, 2)
+                        y_prob = np.zeros((len(y_pred), max_class + 1))
+                        for i, pred in enumerate(y_pred):
+                            y_prob[i, int(pred)] = 1.0
                     
                     # Map prediction to class
-                    class_mapping = {1: 'Sejahtera', 0: 'Menengah'}
-                    predicted_class = class_mapping[y_pred[0]]
+                    class_mapping = {2: 'Sejahtera', 1: 'Menengah', 0: 'Tidak Sejahtera'}
+                    predicted_class = class_mapping[int(y_pred[0])]
                     
                     # Create RegionPrediction object
+                    # Use a more robust approach for getting the probability
+                    prediction_prob = y_prob[0, int(y_pred[0])] if int(y_pred[0]) < y_prob.shape[1] else 1.0
+                    
                     prediction = RegionPrediction(
                         region=region,
                         year=year,
                         model_id=best_model.id,
                         predicted_class=predicted_class,
-                        prediction_probability=y_prob[0, 1] if y_pred[0] == 1 else y_prob[0, 0]
+                        prediction_probability=prediction_prob
                     )
                     
                     db.session.add(prediction)
