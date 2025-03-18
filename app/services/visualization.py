@@ -4,6 +4,9 @@ import json
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import plotly.io as pio
+import plotly.figure_factory as ff
+from scipy.stats import gaussian_kde
 
 def plotly_to_json(fig):
     """Convert a plotly figure to JSON for HTML display"""
@@ -114,161 +117,220 @@ def generate_feature_importance_plot(feature_importance):
     
     return plotly_to_json(fig)
 
-def generate_indicator_distribution_plot(df, indicator_name, year=None):
+def generate_indicator_distribution_plot(values, indicator_name, year):
     """
     Generate a distribution plot for an indicator
     
     Parameters:
     -----------
-    df : pd.DataFrame
-        DataFrame containing the indicator data
+    values : list
+        List of indicator values
     indicator_name : str
         Name of the indicator
-    year : str or int, optional
-        Year to filter for
+    year : str or int
+        Year for the data
         
     Returns:
     --------
     str
-        JSON for Plotly figure
+        JSON string with plotly figure data
     """
-    # Calculate quartiles
-    q1 = df[indicator_name].quantile(0.25)
-    q3 = df[indicator_name].quantile(0.75)
+    title = f'Distribution of {indicator_name.replace("_", " ").title()} in {year}'
     
-    # Create Plotly figure with histogram and KDE
-    fig = px.histogram(
-        df, 
-        x=indicator_name,
-        title=f'Distribution of {indicator_name}' + (f' ({year})' if year else ''),
-        nbins=20,
-        marginal='violin',  # Use violin plot for KDE-like visualization
-        color_discrete_sequence=['#636EFA']
-    )
-    
-    # Add vertical lines for quartiles
-    fig.add_vline(x=q1, line_dash="dash", line_color="red", annotation_text=f"Q1: {q1:.2f}")
-    fig.add_vline(x=q3, line_dash="dash", line_color="green", annotation_text=f"Q3: {q3:.2f}")
-    
-    # Update layout
-    fig.update_layout(
-        xaxis_title=indicator_name,
-        yaxis_title='Count',
-        width=800,
-        height=500
-    )
-    
-    return plotly_to_json(fig)
-
-def generate_indicator_trend_plot(df, indicator_name):
-    """
-    Generate a trend plot for an indicator
-    
-    Parameters:
-    -----------
-    df : pd.DataFrame
-        DataFrame containing the indicator data
-    indicator_name : str
-        Name of the indicator
-        
-    Returns:
-    --------
-    str
-        JSON for Plotly figure
-    """
-    # Group by year and calculate mean, min, max
-    yearly_stats = df.groupby('year')[indicator_name].agg(['mean', 'min', 'max']).reset_index()
-    
-    # Create Plotly figure
+    # Create a figure with two y-axes
     fig = go.Figure()
     
-    # Add mean line with scatter points
-    fig.add_trace(go.Scatter(
-        x=yearly_stats['year'], 
-        y=yearly_stats['mean'],
-        mode='lines+markers',
-        name='Mean',
-        line=dict(color='blue', width=2),
-        marker=dict(size=8)
+    # Calculate histogram bins
+    bin_size = (max(values) - min(values)) / 20 if len(values) > 1 else 1
+    bins = np.arange(min(values), max(values) + bin_size, bin_size)
+    
+    # Add histogram (frequency counts)
+    fig.add_trace(go.Histogram(
+        x=values,
+        name='Frequency',
+        bingroup=1,
+        xbins=dict(
+            start=min(values),
+            end=max(values),
+            size=bin_size
+        ),
+        marker_color='lightblue',
+        opacity=0.7
     ))
     
-    # Add range area
+    # Add KDE curve
+    # Calculate KDE manually
+    kde = gaussian_kde(values)
+    x_kde = np.linspace(min(values), max(values), 1000)
+    y_kde = kde(x_kde)
+    
+    # Scale the KDE to match the histogram scale - multiply by # of values * bin size
+    scaling_factor = len(values) * bin_size
+    y_kde_scaled = y_kde * scaling_factor
+    
+    # Add the KDE curve
     fig.add_trace(go.Scatter(
-        x=yearly_stats['year'],
-        y=yearly_stats['max'],
+        x=x_kde,
+        y=y_kde_scaled,
         mode='lines',
-        name='Max',
-        line=dict(width=0),
-        showlegend=False
+        name='Distribution',
+        line=dict(color='blue', width=2)
     ))
     
-    fig.add_trace(go.Scatter(
-        x=yearly_stats['year'],
-        y=yearly_stats['min'],
-        mode='lines',
-        name='Min',
-        line=dict(width=0),
-        fill='tonexty',
-        fillcolor='rgba(0, 0, 255, 0.1)',
-        showlegend=False
-    ))
+    # Calculate quartiles
+    q1 = np.percentile(values, 25)
+    q3 = np.percentile(values, 75)
+    median = np.percentile(values, 50)
     
-    # Update layout
+    # Add vertical lines for quartiles
+    fig.add_vline(x=q1, line_dash="dash", line_color="blue", annotation_text=f"Q1: {q1:.2f}")
+    fig.add_vline(x=median, line_dash="dash", line_color="green", annotation_text=f"Median: {median:.2f}")
+    fig.add_vline(x=q3, line_dash="dash", line_color="red", annotation_text=f"Q3: {q3:.2f}")
+    
+    # Customize layout
     fig.update_layout(
-        title=f'Trend of {indicator_name} Over Time',
-        xaxis_title='Year',
-        yaxis_title=indicator_name,
-        width=800,
-        height=500
+        title=title,
+        xaxis_title=indicator_name.replace('_', ' ').title(),
+        yaxis_title="Frequency",
+        template='plotly_white',
+        height=500,
+        legend_title="Legend",
+        bargap=0.1
     )
     
-    return plotly_to_json(fig)
+    # Convert to JSON
+    return pio.to_json(fig)
 
-def generate_regional_comparison_plot(df, indicator_name, year=None, top_n=20):
+def generate_indicator_trend_plot(years, values, indicator_name):
     """
-    Generate a regional comparison plot for an indicator
+    Generate a trend plot for an indicator over time
     
     Parameters:
     -----------
-    df : pd.DataFrame
-        DataFrame containing the indicator data
+    years : list
+        List of years
+    values : list
+        List of mean values for each year
     indicator_name : str
         Name of the indicator
-    year : str or int, optional
-        Year to filter for
-    top_n : int, optional
-        Number of top regions to show
         
     Returns:
     --------
     str
-        JSON for Plotly figure
+        JSON string with plotly figure data
     """
-    # Sort by indicator value
-    df_sorted = df.sort_values(indicator_name, ascending=False)
+    # Create dataframe for plotting
+    df = pd.DataFrame({
+        'Year': years,
+        'Value': values
+    })
     
-    # Take top N regions
-    df_top = df_sorted.head(top_n)
-    
-    # Create Plotly figure
-    fig = px.bar(
-        df_top, 
-        x=indicator_name, 
-        y='region',
-        color='label_sejahtera',
-        color_discrete_map={'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'},
-        title=f'Top {top_n} Regions by {indicator_name}' + (f' ({year})' if year else '')
+    # Create line plot
+    fig = px.line(
+        df, 
+        x='Year', 
+        y='Value',
+        title=f'Trend of {indicator_name.replace("_", " ").title()} Over Time',
+        template='plotly_white',
+        markers=True
     )
     
-    # Update layout
+    # Customize layout
     fig.update_layout(
-        xaxis_title=indicator_name,
-        yaxis_title='Region',
-        width=900,
-        height=700
+        xaxis_title='Year',
+        yaxis_title=indicator_name.replace('_', ' ').title(),
+        height=500
     )
     
-    return plotly_to_json(fig)
+    # Convert to JSON
+    return pio.to_json(fig)
+
+def generate_regional_comparison_plot(regions, values, labels, indicator_name, year):
+    """
+    Generate a plot comparing regions based on an indicator
+    
+    Parameters:
+    -----------
+    regions : list
+        List of region names
+    values : list
+        List of indicator values
+    labels : list
+        List of labels (Sejahtera, Menengah, etc.)
+    indicator_name : str
+        Name of the indicator
+    year : str or int
+        Year for the data
+        
+    Returns:
+    --------
+    str
+        JSON string with plotly figure data
+    """
+    # Create dataframe for plotting
+    df = pd.DataFrame({
+        'Region': regions,
+        'Value': values,
+        'Label': labels
+    })
+    
+    # Sort by value
+    df = df.sort_values('Value')
+    
+    # Create color mapping for labels
+    colors = {
+        'Sejahtera': '#28a745',
+        'Menengah': '#ffc107',
+        'Tidak Sejahtera': '#dc3545'
+    }
+    
+    # Create bar chart
+    fig = px.bar(
+        df,
+        x='Region',
+        y='Value',
+        color='Label',
+        color_discrete_map=colors,
+        title=f'Regional Comparison of {indicator_name.replace("_", " ").title()} ({year})',
+        template='plotly_white',
+        height=600
+    )
+    
+    # Customize layout
+    fig.update_layout(
+        xaxis_title='Region',
+        yaxis_title=indicator_name.replace('_', ' ').title(),
+        xaxis={'categoryorder': 'total ascending'}
+    )
+    
+    # Add horizontal line at mean
+    mean_value = df['Value'].mean()
+    fig.add_shape(
+        type='line',
+        x0=-0.5,
+        y0=mean_value,
+        x1=len(regions) - 0.5,
+        y1=mean_value,
+        line=dict(
+            color='red',
+            width=2,
+            dash='dash'
+        )
+    )
+    
+    fig.add_annotation(
+        x=0,
+        y=mean_value,
+        text=f'Mean: {mean_value:.2f}',
+        showarrow=False,
+        yshift=10
+    )
+    
+    # Rotate x-axis labels for better readability
+    fig.update_xaxes(tickangle=45)
+    
+    # Convert to JSON
+    return pio.to_json(fig)
 
 def generate_prosperity_distribution_plot(df, result_type='predicted'):
     """
@@ -314,191 +376,278 @@ def generate_prosperity_distribution_plot(df, result_type='predicted'):
     
     return plotly_to_json(fig)
 
-def generate_prosperity_trend_plot(df, result_type='predicted'):
+def generate_prosperity_trend_plot(df, result_type):
     """
-    Generate a trend plot for prosperity predictions
-    
-    Parameters:
-    -----------
-    df : pd.DataFrame
-        DataFrame containing the prediction data
-    result_type : str
-        Type of result to display ('predicted' or 'actual')
-        
-    Returns:
-    --------
-    str
-        JSON for Plotly figure
+    Generate a line plot showing the trend of prosperity over time
     """
-    # Group by year and predicted class
-    yearly_counts = df.groupby(['year', 'predicted_class']).size().unstack().fillna(0)
+    # Group data by year and count classes
+    pivot_df = df.groupby(['year', 'predicted_class']).size().reset_index(name='count')
     
-    # Create Plotly figure
+    # Create figure
     fig = go.Figure()
     
     # Add lines for each class
-    colors = {'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'}
-    for cls in yearly_counts.columns:
-        fig.add_trace(go.Scatter(
-            x=yearly_counts.index, 
-            y=yearly_counts[cls],
-            mode='lines+markers',
-            name=cls,
-            line=dict(color=colors.get(cls, 'blue'))
-        ))
+    for class_label in pivot_df['predicted_class'].unique():
+        class_data = pivot_df[pivot_df['predicted_class'] == class_label]
+        fig.add_trace(
+            go.Scatter(
+                x=class_data['year'], 
+                y=class_data['count'],
+                mode='lines+markers',
+                name=class_label,
+                line=dict(
+                    width=3,
+                    color='green' if class_label == 'Sejahtera' else 'orange' if class_label == 'Menengah' else 'red'
+                ),
+                marker=dict(size=10)
+            )
+        )
     
-    # Update layout with result type in title
+    # Update layout
+    years = sorted(df['year'].unique())
     fig.update_layout(
-        title=f'Trend of {"Predicted" if result_type == "predicted" else "Actual"} Prosperity Over Time',
-        xaxis_title='Year',
-        yaxis_title='Count',
-        width=800,
-        height=500
+        title=f"Trend of {'Predicted' if result_type == 'predicted' else 'Actual'} Prosperity Over Time",
+        xaxis=dict(
+            title='Year',
+            tickmode='array',
+            tickvals=years,
+            ticktext=[str(y) for y in years],
+        ),
+        yaxis=dict(title='Number of Regions'),
+        legend=dict(title='Prosperity Class'),
+        hovermode='x unified'
     )
     
-    return plotly_to_json(fig)
+    return fig.to_json()
 
-def generate_label_distribution_plot(df, indicator_name, year=None):
+def generate_prosperity_comparison_plot(df):
     """
-    Generate a distribution plot for labels of an indicator
-    
-    Parameters:
-    -----------
-    df : pd.DataFrame
-        DataFrame containing the indicator data
-    indicator_name : str
-        Name of the indicator
-    year : str or int, optional
-        Year to filter for
-        
-    Returns:
-    --------
-    str
-        JSON for Plotly figure
+    Generate a plot comparing predicted vs actual prosperity classes
     """
-    # Count labels
-    label_counts = df['label_sejahtera'].value_counts()
-    
-    # Create a subplot with 1 row and 2 columns
+    # Create figure with subplots
     fig = make_subplots(
-        rows=1, cols=2,
-        specs=[[{"type": "bar"}, {"type": "pie"}]],
-        subplot_titles=["Label Distribution", "Label Percentage"]
+        rows=1, cols=2, 
+        subplot_titles=("Predicted Prosperity", "Actual Prosperity"),
+        specs=[[{"type": "pie"}, {"type": "pie"}]],
+        horizontal_spacing=0.1
     )
     
-    # Add bar chart
+    # Count predicted classes
+    predicted_counts = df['predicted_class'].value_counts().reset_index()
+    predicted_counts.columns = ['class', 'count']
+    
+    # Count actual classes
+    actual_counts = df['actual_class'].value_counts().reset_index()
+    actual_counts.columns = ['class', 'count']
+    
+    # Define colors
     colors = {'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'}
+    
+    # Add predicted pie chart
     fig.add_trace(
-        go.Bar(
-            x=label_counts.index,
-            y=label_counts.values,
-            text=label_counts.values,
-            textposition='auto',
-            marker_color=[colors.get(label, 'blue') for label in label_counts.index]
+        go.Pie(
+            labels=predicted_counts['class'],
+            values=predicted_counts['count'],
+            name="Predicted",
+            marker_colors=[colors.get(cls, 'gray') for cls in predicted_counts['class']],
+            textinfo='percent+label',
+            hole=0.3
         ),
         row=1, col=1
     )
     
-    # Add pie chart
+    # Add actual pie chart
     fig.add_trace(
         go.Pie(
-            labels=label_counts.index,
-            values=label_counts.values,
-            marker=dict(colors=[colors.get(label, 'blue') for label in label_counts.index])
+            labels=actual_counts['class'],
+            values=actual_counts['count'],
+            name="Actual",
+            marker_colors=[colors.get(cls, 'gray') for cls in actual_counts['class']],
+            textinfo='percent+label',
+            hole=0.3
         ),
         row=1, col=2
     )
     
+    # Create confusion matrix data
+    conf_matrix = {}
+    for _, row in df.iterrows():
+        pred = row['predicted_class']
+        actual = row['actual_class']
+        key = f"{pred}-{actual}"
+        conf_matrix[key] = conf_matrix.get(key, 0) + 1
+    
+    # Calculate accuracy
+    accuracy = (df['predicted_class'] == df['actual_class']).mean() * 100
+    
     # Update layout
     fig.update_layout(
-        title=f'Label Distribution for {indicator_name}' + (f' ({year})' if year else ''),
-        width=1000,
+        title_text=f"Comparison of Predicted vs Actual Prosperity (Accuracy: {accuracy:.2f}%)",
         height=500,
-        showlegend=False
+        margin=dict(t=100, b=50),
+        annotations=[
+            dict(text=f"Predicted (n={len(df)})", x=0.18, y=0.5, font_size=14, showarrow=False),
+            dict(text=f"Actual (n={len(df)})", x=0.82, y=0.5, font_size=14, showarrow=False)
+        ]
     )
     
-    return plotly_to_json(fig)
+    # Add interactive hover data
+    hoverlabel = dict(bgcolor="white", font_size=16, font_family="Arial")
+    fig.update_traces(hoverinfo="label+percent+name", hoverlabel=hoverlabel)
+    
+    return fig.to_json()
 
-def generate_label_trend_plot(df, indicator_name):
+def generate_label_distribution_plot(labels, indicator_name, year):
     """
-    Generate a trend plot for labels of an indicator
+    Generate a pie chart of label distribution for an indicator
     
     Parameters:
     -----------
-    df : pd.DataFrame
-        DataFrame containing the indicator data
+    labels : list
+        List of label values
+    indicator_name : str
+        Name of the indicator
+    year : str or int
+        Year for the data
+        
+    Returns:
+    --------
+    str
+        JSON string with plotly figure data
+    """
+    # Count each label
+    label_counts = {}
+    for label in labels:
+        label_counts[label] = label_counts.get(label, 0) + 1
+    
+    # Create dataframe for plotting
+    df = pd.DataFrame({
+        'Label': list(label_counts.keys()),
+        'Count': list(label_counts.values())
+    })
+    
+    # Create colors based on labels
+    colors = {'Sejahtera': '#28a745', 'Menengah': '#ffc107', 'Tidak Sejahtera': '#dc3545'}
+    
+    # Create pie chart
+    fig = px.pie(
+        df, 
+        names='Label', 
+        values='Count',
+        title=f'Label Distribution for {indicator_name.replace("_", " ").title()} in {year}',
+        color='Label',
+        color_discrete_map=colors,
+        template='plotly_white'
+    )
+    
+    # Customize layout
+    fig.update_layout(
+        height=500
+    )
+    
+    # Convert to JSON
+    return pio.to_json(fig)
+
+def generate_label_trend_plot(years, sejahtera_counts, menengah_counts, tidak_sejahtera_counts, indicator_name):
+    """
+    Generate a trend plot of label distribution over time
+    
+    Parameters:
+    -----------
+    years : list
+        List of years
+    sejahtera_counts : list
+        List of 'Sejahtera' counts for each year
+    menengah_counts : list
+        List of 'Menengah' counts for each year
+    tidak_sejahtera_counts : list
+        List of 'Tidak Sejahtera' counts for each year
     indicator_name : str
         Name of the indicator
         
     Returns:
     --------
     str
-        JSON for Plotly figure
+        JSON string with plotly figure data
     """
-    # Group by year and label
-    yearly_counts = df.groupby(['year', 'label_sejahtera']).size().unstack().fillna(0)
-    
-    # Create Plotly figure
+    # Create stacked bar chart
     fig = go.Figure()
     
-    # Add lines for each label
-    colors = {'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'}
-    for label in yearly_counts.columns:
-        fig.add_trace(go.Scatter(
-            x=yearly_counts.index, 
-            y=yearly_counts[label],
-            mode='lines+markers',
-            name=label,
-            line=dict(color=colors.get(label, 'blue'))
-        ))
+    # Add bars for each label
+    fig.add_trace(go.Bar(
+        x=years,
+        y=sejahtera_counts,
+        name='Sejahtera',
+        marker_color='#28a745'
+    ))
     
-    # Update layout
+    fig.add_trace(go.Bar(
+        x=years,
+        y=menengah_counts,
+        name='Menengah',
+        marker_color='#ffc107'
+    ))
+    
+    fig.add_trace(go.Bar(
+        x=years,
+        y=tidak_sejahtera_counts,
+        name='Tidak Sejahtera',
+        marker_color='#dc3545'
+    ))
+    
+    # Customize layout
     fig.update_layout(
-        title=f'Label Trend for {indicator_name} Over Time',
+        title=f'Label Trend for {indicator_name.replace("_", " ").title()} Over Time',
         xaxis_title='Year',
         yaxis_title='Count',
-        width=800,
+        barmode='stack',
+        template='plotly_white',
         height=500
     )
     
-    return plotly_to_json(fig)
+    # Convert to JSON
+    return pio.to_json(fig)
 
-def generate_correlation_matrix_plot(df, year=None):
+def generate_correlation_matrix_plot(df, year):
     """
     Generate a correlation matrix plot for all indicators
     
     Parameters:
     -----------
     df : pd.DataFrame
-        DataFrame containing all indicator data
-    year : str or int, optional
-        Year to filter for
+        DataFrame with indicators as columns and regions as rows
+    year : str or int
+        Year for the data
         
     Returns:
     --------
     str
-        JSON for Plotly figure
+        JSON string with plotly figure data
     """
     # Calculate correlation matrix
-    corr_matrix = df.corr()
+    corr_matrix = df.corr().round(2)
     
-    # Create Plotly figure
+    # Create heatmap
     fig = px.imshow(
         corr_matrix,
-        text_auto='.2f',
+        text_auto=True,
         color_continuous_scale='RdBu_r',
-        zmin=-1, zmax=1,
-        title=f'Correlation Matrix of Indicators' + (f' ({year})' if year else '')
+        title=f'Correlation Matrix of Indicators ({year})',
+        template='plotly_white',
+        height=600,
+        width=800
     )
     
-    # Update layout
+    # Customize layout
     fig.update_layout(
-        width=900,
-        height=800
+        xaxis_title='Indicator',
+        yaxis_title='Indicator',
     )
     
-    return plotly_to_json(fig)
+    # Convert to JSON
+    return pio.to_json(fig)
 
+def generate_comparison_plot(df, region):
     """
     Generate a comparison plot for a specific region's predictions vs actual
     

@@ -43,7 +43,9 @@ def manual_labeling(df, indicator, column_name):
             'menengah_threshold': "60-70",
             'tidak_sejahtera_threshold': "< 60",
             'labeling_method': 'manual',
-            'is_reverse': False
+            'is_reverse': False,
+            'low_threshold': 60,
+            'high_threshold': 70
         }
         threshold = LabelingThreshold(**threshold_data)
     
@@ -60,7 +62,9 @@ def manual_labeling(df, indicator, column_name):
             'menengah_threshold': "6.5-7.0",
             'tidak_sejahtera_threshold': "> 7.0",
             'labeling_method': 'manual',
-            'is_reverse': True
+            'is_reverse': True,
+            'low_threshold': 6.75,
+            'high_threshold': 7.0
         }
         threshold = LabelingThreshold(**threshold_data)
     
@@ -76,7 +80,9 @@ def manual_labeling(df, indicator, column_name):
             'menengah_threshold': "20-29",
             'tidak_sejahtera_threshold': "> 29",
             'labeling_method': 'manual',
-            'is_reverse': True
+            'is_reverse': True,
+            'low_threshold': 20,
+            'high_threshold': 29
         }
         threshold = LabelingThreshold(**threshold_data)
     

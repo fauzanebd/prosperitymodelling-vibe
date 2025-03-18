@@ -20,7 +20,12 @@ Analysis{% endblock %} {% block content %}
       </p>
     </div>
 
-    <form method="POST" action="{{ url_for('dataset.add_for_inference') }}">
+    <form
+      method="POST"
+      action="{{ url_for('dataset.add_for_inference') }}"
+      id="inference-form"
+      onsubmit="return document.activeElement.type === 'submit';"
+    >
       <div class="row mb-3">
         <div class="col-md-6">
           <label for="region" class="form-label">Region</label>
@@ -37,7 +42,13 @@ Analysis{% endblock %} {% block content %}
         </div>
         <div class="col-md-6">
           <label for="year" class="form-label">Year</label>
-          <select class="form-select" id="year" name="year" required>
+          <select
+            class="form-select"
+            id="year"
+            name="year"
+            required
+            onchange="return false;"
+          >
             <option value="" selected disabled>Select a year</option>
             {% for year in range(2019, 2024) %}
             <option value="{{ year }}">{{ year }}</option>
@@ -55,7 +66,8 @@ Analysis{% endblock %} {% block content %}
             {% for indicator in indicators %}
             <div class="col-md-6 mb-3">
               <label for="value_{{ indicator }}" class="form-label"
-                >{{ indicator|replace('_', ' ')|title }}</label
+                >{{ indicator|replace('_', ' ')|title }} ({{
+                INDICATOR_MODELS[indicator].unit }})</label
               >
               <input
                 type="number"
@@ -82,4 +94,54 @@ Analysis{% endblock %} {% block content %}
     </form>
   </div>
 </div>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Disable auto-submit on select fields
+    const yearSelect = document.getElementById("year");
+    if (yearSelect) {
+      // Remove any existing onchange handlers that might be interfering
+      yearSelect.onchange = null;
+
+      // Replace with our own handler that prevents form submission
+      yearSelect.addEventListener(
+        "change",
+        function (event) {
+          // Stop the event from bubbling up to any form submit handlers
+          event.preventDefault();
+          event.stopPropagation();
+          return false;
+        },
+        true
+      );
+    }
+
+    // Also disable form auto-submission on all select elements
+    document.querySelectorAll("form select").forEach(function (select) {
+      select.addEventListener(
+        "change",
+        function (event) {
+          // Prevent the event from triggering form submission
+          event.stopPropagation();
+        },
+        true
+      );
+    });
+
+    // Use form submit event instead
+    const form = document.getElementById("inference-form");
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        // Only submit if both fields are filled
+        const region = document.getElementById("region").value;
+        const year = document.getElementById("year").value;
+
+        if (!region || !year) {
+          e.preventDefault();
+          alert("Please fill both Region and Year fields");
+        }
+      });
+    }
+  });
+</script>
 {% endblock %}

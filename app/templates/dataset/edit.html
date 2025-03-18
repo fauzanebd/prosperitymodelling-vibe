@@ -8,7 +8,8 @@ endblock %} {% block content %}
     <div class="alert alert-info">
       <h5>Editing data for:</h5>
       <p class="mb-1">
-        <strong>Indicator:</strong> {{ indicator|replace('_', ' ')|title }}
+        <strong>Indicator:</strong> {{ indicator|replace('_', ' ')|title }} ({{
+        INDICATOR_MODELS[indicator].unit }})
       </p>
       <p class="mb-1"><strong>Region:</strong> {{ data.region }}</p>
       <p class="mb-0"><strong>Year:</strong> {{ data.year }}</p>
@@ -24,7 +25,9 @@ endblock %} {% block content %}
       action="{{ url_for('dataset.edit', indicator=indicator, id=data.id) }}"
     >
       <div class="mb-3">
-        <label for="value" class="form-label">Value</label>
+        <label for="value" class="form-label"
+          >Value ({{ INDICATOR_MODELS[indicator].unit }})</label
+        >
         <input
           type="number"
           class="form-control"

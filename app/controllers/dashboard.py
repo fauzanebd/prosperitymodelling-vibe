@@ -2,7 +2,9 @@ from flask import Blueprint, render_template, request
 from flask_login import login_required
 from app.models.predictions import RegionPrediction
 from app.models.ml_models import TrainedModel
+from app.models.indicators import IndeksPembangunanManusia
 from sqlalchemy import func
+from app import db
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -21,8 +23,15 @@ def index():
     # Get prediction statistics if a model exists
     prediction_stats = None
     if best_model:
-        # Get predictions using the best model
-        query = RegionPrediction.query.filter_by(model_id=best_model.id)
+        # Get regions with IPM data (training data)
+        regions_with_ipm = db.session.query(IndeksPembangunanManusia.region).distinct().all()
+        regions_with_ipm = [r[0] for r in regions_with_ipm]
+        
+        # Get predictions using the best model for training regions only
+        query = RegionPrediction.query.filter(
+            RegionPrediction.model_id == best_model.id,
+            RegionPrediction.region.in_(regions_with_ipm)
+        )
         
         # Filter by year if specified
         if selected_year != 'all':

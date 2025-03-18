@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app.models.indicators import INDICATOR_MODELS
 from app.models.thresholds import LabelingThreshold
 from app import db
-from app.services.data_processor import preprocess_indicator_value, label_indicator_value
+from app.services.data_processor import preprocess_indicator_value, label_indicator_value_for_inference
 from app.services.model_trainer import retrain_model_if_needed, generate_predictions, delete_old_models
 from sqlalchemy import func
 import pandas as pd
@@ -65,7 +65,8 @@ def index():
                           years=[y[0] for y in years],
                           region_filter=region_filter,
                           year_filter=year_filter,
-                          threshold=threshold)
+                          threshold=threshold,
+                          INDICATOR_MODELS=INDICATOR_MODELS)
 
 @dataset_bp.route('/dataset/add', methods=['GET', 'POST'])
 @login_required
@@ -95,7 +96,7 @@ def add_for_inference():
         
         if not all([region, year]):
             flash('Region and year are required', 'danger')
-            return render_template('dataset/add_for_inference.html', indicators=indicators)
+            return render_template('dataset/add_for_inference.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
         
         # Check if any data already exists for this region and year
         for indicator in indicators:
@@ -103,7 +104,7 @@ def add_for_inference():
             existing_data = model_class.query.filter_by(region=region, year=year).first()
             if existing_data:
                 flash(f'Data for {region} in {year} already exists for {indicator}', 'danger')
-                return render_template('dataset/add_for_inference.html', indicators=indicators)
+                return render_template('dataset/add_for_inference.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
         
         # Process each indicator
         for indicator in indicators:
@@ -111,7 +112,7 @@ def add_for_inference():
             
             if value is None:
                 flash(f'Value for {indicator} is required', 'danger')
-                return render_template('dataset/add_for_inference.html', indicators=indicators)
+                return render_template('dataset/add_for_inference.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
             
             # Get the model class for the indicator
             model_class = INDICATOR_MODELS[indicator]
@@ -120,7 +121,7 @@ def add_for_inference():
             processed_value = preprocess_indicator_value(indicator, value)
             
             # Label the value
-            label = label_indicator_value(indicator, processed_value)
+            label = label_indicator_value_for_inference(indicator, processed_value)
             
             # Create new data
             new_data = model_class(region=region, year=year, value=processed_value, label_sejahtera=label)
@@ -129,7 +130,7 @@ def add_for_inference():
         # Commit all changes
         db.session.commit()
         
-        # Generate predictions for the new region
+        # Get the best model for prediction
         from app.models.ml_models import TrainedModel
         from app.models.predictions import RegionPrediction
         best_model = TrainedModel.query.order_by(TrainedModel.accuracy.desc()).first()
@@ -139,15 +140,182 @@ def add_for_inference():
             RegionPrediction.query.filter_by(region=region, year=year).delete()
             db.session.commit()
             
-            # Generate predictions using the best model
-            predictions = generate_predictions(best_model.id)
-            flash(f'Data for {region} in {year} added successfully and predictions updated', 'success')
+            # Generate prediction just for this region and year
+            # Create a combined dataset for this region
+            from app.services.data_processor import create_combined_dataset_for_region
+            region_df = create_combined_dataset_for_region(region, year)
+            
+            if region_df is not None:
+                # Load the model, scaler, and feature names
+                model, scaler, feature_names = best_model.load_model()
+                
+                # Prepare the data for prediction
+                from app.services.data_processor import prepare_data_for_model
+                X, _, _ = prepare_data_for_model(region_df, 'indeks_pembangunan_manusia')
+                
+                if X is not None:
+                    # Add year as a feature
+                    X['year'] = year
+                    
+                    # Ensure X has the same features as the model was trained on
+                    missing_features = set(feature_names) - set(X.columns)
+                    for feature in missing_features:
+                        X[feature] = 0  # Fill missing features with 0
+                    
+                    extra_features = set(X.columns) - set(feature_names)
+                    if extra_features:
+                        X = X.drop(columns=extra_features)
+                    
+                    X = X[feature_names]  # Reorder columns to match feature_names
+                    
+                    # Standardize features
+                    X_scaled = scaler.transform(X)
+                    
+                    # Make prediction
+                    import numpy as np
+                    if hasattr(model, 'predict_proba'):
+                        y_prob = model.predict_proba(X_scaled)
+                        y_pred = model.predict(X_scaled)
+                    else:
+                        y_pred = model.predict(X_scaled)
+                        y_prob = np.zeros((len(y_pred), 2))
+                        y_prob[np.arange(len(y_pred)), y_pred] = 1
+                    
+                    # Map prediction to class
+                    class_mapping = {1: 'Sejahtera', 0: 'Menengah'}
+                    predicted_class = class_mapping[y_pred[0]]
+                    
+                    # Create RegionPrediction object
+                    prediction = RegionPrediction(
+                        region=region,
+                        year=year,
+                        model_id=best_model.id,
+                        predicted_class=predicted_class,
+                        prediction_probability=y_prob[0, 1] if y_pred[0] == 1 else y_prob[0, 0]
+                    )
+                    
+                    db.session.add(prediction)
+                    db.session.commit()
+                    
+                    # Redirect to a new page to show the prediction result
+                    return redirect(url_for('dataset.prediction_result', region=region, year=year))
+            
+            flash(f'Data for {region} in {year} added successfully, but prediction failed', 'warning')
         else:
-            flash(f'Data for {region} in {year} added successfully, but no model found for predictions', 'warning')
+            flash(f'Data for {region} in {year} added successfully, but no model found for prediction', 'warning')
         
         return redirect(url_for('dashboard.index'))
     
-    return render_template('dataset/add_for_inference.html', indicators=indicators)
+    return render_template('dataset/add_for_inference.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
+
+@dataset_bp.route('/dataset/prediction_result/<region>/<int:year>')
+@login_required
+def prediction_result(region, year):
+    """Show prediction result for a specific region and year"""
+    # Get the prediction for this region and year
+    from app.models.predictions import RegionPrediction
+    from app.models.ml_models import TrainedModel
+    
+    prediction = RegionPrediction.query.filter_by(region=region, year=year).order_by(RegionPrediction.id.desc()).first()
+    
+    if not prediction:
+        flash(f'No prediction found for {region} in {year}', 'danger')
+        return redirect(url_for('dashboard.index'))
+    
+    # Get the model used for prediction
+    model = TrainedModel.query.get(prediction.model_id)
+    
+    # Get all indicator values for this region and year
+    indicator_values = {}
+    for indicator, model_class in INDICATOR_MODELS.items():
+        data = model_class.query.filter_by(region=region, year=year).first()
+        if data:
+            indicator_values[indicator] = {
+                'value': data.value,
+                'label': data.label_sejahtera,
+                'unit': model_class.unit
+            }
+    
+    return render_template('dataset/prediction_result.html', 
+                          prediction=prediction, 
+                          model=model, 
+                          region=region, 
+                          year=year,
+                          indicator_values=indicator_values)
+
+@dataset_bp.route('/dataset/inference_predictions')
+@login_required
+def inference_predictions():
+    """Display a list of predictions made for inference-only data (not used in training)"""
+    # Get page number for pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
+    # Get filter parameters
+    region_filter = request.args.get('region', '')
+    year_filter = request.args.get('year', '')
+    
+    # Get the best model based on accuracy
+    from app.models.ml_models import TrainedModel
+    from app.models.predictions import RegionPrediction
+    best_model = TrainedModel.query.order_by(TrainedModel.accuracy.desc()).first()
+    
+    if not best_model:
+        flash('No trained models available', 'warning')
+        return render_template('dataset/inference_predictions.html', 
+                              predictions=None,
+                              regions=[],
+                              years=[],
+                              region_filter='',
+                              year_filter='')
+    
+    # Query to identify inference-only regions
+    # These are regions that have data for some indicators but not for indeks_pembangunan_manusia
+    from app.models.indicators import AngkaHarapanHidup  # Use any indicator model as a base
+    
+    # Get all unique regions with data
+    regions_with_data = db.session.query(AngkaHarapanHidup.region).distinct().all()
+    regions_with_data = [r[0] for r in regions_with_data]
+    
+    # Get regions with indeks_pembangunan_manusia data (training data)
+    from app.models.indicators import IndeksPembangunanManusia
+    regions_with_ipm = db.session.query(IndeksPembangunanManusia.region).distinct().all()
+    regions_with_ipm = [r[0] for r in regions_with_ipm]
+    
+    # Find inference-only regions (have data but no IPM data)
+    inference_only_regions = list(set(regions_with_data) - set(regions_with_ipm))
+    
+    # Build the query for predictions
+    query = RegionPrediction.query.filter(
+        RegionPrediction.model_id == best_model.id,
+        RegionPrediction.region.in_(inference_only_regions)
+    )
+    
+    # Apply filters if provided
+    if region_filter:
+        query = query.filter(RegionPrediction.region.ilike(f'%{region_filter}%'))
+    if year_filter:
+        query = query.filter(RegionPrediction.year == year_filter)
+    
+    # Get paginated data
+    predictions = query.order_by(RegionPrediction.region, RegionPrediction.year).paginate(page=page, per_page=per_page)
+    
+    # Get unique regions and years for filter dropdowns
+    regions = db.session.query(RegionPrediction.region).filter(
+        RegionPrediction.region.in_(inference_only_regions)
+    ).distinct().order_by(RegionPrediction.region).all()
+    
+    years = db.session.query(RegionPrediction.year).filter(
+        RegionPrediction.region.in_(inference_only_regions)
+    ).distinct().order_by(RegionPrediction.year).all()
+    
+    return render_template('dataset/inference_predictions.html', 
+                          predictions=predictions,
+                          regions=[r[0] for r in regions],
+                          years=[y[0] for y in years],
+                          region_filter=region_filter,
+                          year_filter=year_filter,
+                          model=best_model)
 
 @dataset_bp.route('/dataset/add-for-training', methods=['GET', 'POST'])
 @login_required
@@ -167,7 +335,7 @@ def add_for_training():
         
         if not region:
             flash('Region is required', 'danger')
-            return render_template('dataset/add_for_training.html', indicators=indicators)
+            return render_template('dataset/add_for_training.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
         
         # Process each year and indicator
         years = range(2019, 2024)
@@ -177,7 +345,7 @@ def add_for_training():
                 
                 if value is None:
                     flash(f'Value for {indicator} in {year} is required', 'danger')
-                    return render_template('dataset/add_for_training.html', indicators=indicators)
+                    return render_template('dataset/add_for_training.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
                 
                 # Get the model class for the indicator
                 model_class = INDICATOR_MODELS[indicator]
@@ -203,12 +371,36 @@ def add_for_training():
         db.session.commit()
         
         # Retrain model
-        retrain_model_if_needed('indeks_pembangunan_manusia')
+        retrain_result = retrain_model_if_needed('indeks_pembangunan_manusia')
         
-        flash(f'Data for {region} for all years added successfully, model retrained, and old models cleaned up', 'success')
+        if retrain_result:
+            flash(f'Data for {region} for all years added successfully and model retrained', 'success')
+            
+            # Get the most recent year with data
+            most_recent_year = max(years)
+            
+            # Get the latest model to generate a prediction for the most recent year
+            from app.models.ml_models import TrainedModel
+            from app.models.predictions import RegionPrediction
+            best_model = TrainedModel.query.order_by(TrainedModel.accuracy.desc()).first()
+            
+            if best_model:
+                # Get the prediction for the most recent year
+                prediction = RegionPrediction.query.filter_by(
+                    region=region, 
+                    year=most_recent_year,
+                    model_id=best_model.id
+                ).first()
+                
+                if prediction:
+                    # Redirect to the prediction result page
+                    return redirect(url_for('dataset.prediction_result', region=region, year=most_recent_year))
+        else:
+            flash(f'Data for {region} for all years added successfully but model training failed', 'warning')
+        
         return redirect(url_for('visualization.model_performance'))
     
-    return render_template('dataset/add_for_training.html', indicators=indicators)
+    return render_template('dataset/add_for_training.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
 
 @dataset_bp.route('/dataset/edit/<indicator>/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -229,7 +421,7 @@ def edit(indicator, id):
         
         if value is None:
             flash('Value is required', 'danger')
-            return render_template('dataset/edit.html', data=data, indicator=indicator)
+            return render_template('dataset/edit.html', data=data, indicator=indicator, INDICATOR_MODELS=INDICATOR_MODELS)
         
         # Preprocess the value
         processed_value = preprocess_indicator_value(indicator, value)
@@ -252,7 +444,7 @@ def edit(indicator, id):
         
         return redirect(url_for('dataset.index', indicator=indicator))
     
-    return render_template('dataset/edit.html', data=data, indicator=indicator)
+    return render_template('dataset/edit.html', data=data, indicator=indicator, INDICATOR_MODELS=INDICATOR_MODELS)
 
 @dataset_bp.route('/dataset/delete/<indicator>/<int:id>', methods=['POST'])
 @login_required

@@ -74,6 +74,14 @@
                     <i class="fas fa-table"></i> View Data
                   </a>
                 </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('dataset.inference_predictions') }}"
+                  >
+                    <i class="fas fa-brain"></i> Inference Predictions
+                  </a>
+                </li>
                 {% if current_user.is_admin %}
                 <li>
                   <a

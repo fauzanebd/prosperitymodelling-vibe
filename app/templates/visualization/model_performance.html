@@ -5,9 +5,24 @@
 {% block extra_js %}
 <!-- Add Plotly.js -->
 <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
-{% if confusion_matrix_json or feature_importance_json %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Auto-submit form when dropdowns change
+        const modelTypeSelect = document.getElementById('model_type');
+        const evaluationYearSelect = document.getElementById('evaluation_year');
+        
+        if (modelTypeSelect) {
+            modelTypeSelect.addEventListener('change', function() {
+                document.getElementById('performance-form').submit();
+            });
+        }
+        
+        if (evaluationYearSelect) {
+            evaluationYearSelect.addEventListener('change', function() {
+                document.getElementById('performance-form').submit();
+            });
+        }
+        
         {% if confusion_matrix_json %}
         var confusionData = {{ confusion_matrix_json|safe }};
         Plotly.newPlot('confusion-matrix-plot', confusionData);
@@ -20,7 +35,6 @@
         
     });
 </script>
-{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -29,7 +43,7 @@
         <h4 class="mb-0">Model Performance Comparison</h4>
     </div>
     <div class="card-body">
-        <form method="GET" action="{{ url_for('visualization.model_performance') }}">
+        <form method="GET" action="{{ url_for('visualization.model_performance') }}" id="performance-form">
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
@@ -50,9 +64,6 @@
                             {% endfor %}
                         </select>
                     </div>
-                </div>
-                <div class="col-md-12">
-                    <button type="submit" class="btn btn-primary">Update</button>
                 </div>
             </div>
         </form>

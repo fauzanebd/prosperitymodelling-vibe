@@ -1,0 +1,110 @@
+{% extends 'base.html' %} {% block title %}Prediction Result - Prosperity
+Analysis{% endblock %} {% block content %}
+<div class="card mb-4">
+  <div class="card-header bg-primary text-white">
+    <h4 class="mb-0">Prosperity Prediction Result</h4>
+  </div>
+  <div class="card-body">
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <h5>Region Details</h5>
+        <table class="table table-bordered">
+          <tr>
+            <th style="width: 40%">Region:</th>
+            <td><strong>{{ region }}</strong></td>
+          </tr>
+          <tr>
+            <th>Year:</th>
+            <td>{{ year }}</td>
+          </tr>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <h5>Model Information</h5>
+        <table class="table table-bordered">
+          <tr>
+            <th style="width: 40%">Model Type:</th>
+            <td>{{ model.model_type|replace('_', ' ')|title }}</td>
+          </tr>
+          <tr>
+            <th>Accuracy:</th>
+            <td>{{ "%.2f"|format(model.accuracy * 100) }}%</td>
+          </tr>
+          <tr>
+            <th>Trained At:</th>
+            <td>{{ model.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-12">
+        <div
+          class="card {{ 'bg-success text-white' if prediction.predicted_class == 'Sejahtera' else 'bg-warning' if prediction.predicted_class == 'Menengah' else 'bg-danger text-white' }}"
+        >
+          <div class="card-body text-center">
+            <h3 class="card-title">Prediction Result</h3>
+            <h1 class="display-4">{{ prediction.predicted_class }}</h1>
+            <p class="lead">
+              Confidence: {{ "%.2f"|format(prediction.prediction_probability *
+              100) }}%
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Indicator Values Used for Prediction</h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead>
+              <tr>
+                <th>Indicator</th>
+                <th>Value</th>
+                <th>Unit</th>
+                <th>Classification</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for indicator, data in indicator_values.items() %}
+              <tr>
+                <td>{{ indicator|replace('_', ' ')|title }}</td>
+                <td>{{ "%.2f"|format(data.value) }}</td>
+                <td>{{ data.unit }}</td>
+                <td>
+                  <span
+                    class="badge {{ 'bg-success' if data.label == 'Sejahtera' else 'bg-warning text-dark' if data.label == 'Menengah' else 'bg-danger' }}"
+                  >
+                    {{ data.label }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+        <i class="fas fa-home me-2"></i>Dashboard
+      </a>
+      <a href="{{ url_for('dataset.index') }}" class="btn btn-primary">
+        <i class="fas fa-database me-2"></i>View Dataset
+      </a>
+      <a
+        href="{{ url_for('dataset.add_for_inference') }}"
+        class="btn btn-success"
+      >
+        <i class="fas fa-plus me-2"></i>Add Another Region
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

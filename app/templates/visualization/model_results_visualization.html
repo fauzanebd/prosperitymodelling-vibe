@@ -195,10 +195,6 @@
                                     </select>
                                 </div>
                                 {% endif %}
-                                
-                                <div class="col-md-12 mt-3">
-                                    <button type="submit" class="btn btn-primary w-100">Generate Visualization</button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -335,11 +331,34 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle visualization type change
+    // Handle form inputs change
     const vizTypeSelect = document.getElementById('viz_type');
+    const resultYearSelect = document.getElementById('result_year');
+    const resultTypeSelect = document.getElementById('result_type');
+    const regionSelect = document.getElementById('region');
+    const form = document.getElementById('visualization-form');
+    
     if (vizTypeSelect) {
         vizTypeSelect.addEventListener('change', function() {
-            document.getElementById('visualization-form').submit();
+            form.submit();
+        });
+    }
+    
+    if (resultYearSelect) {
+        resultYearSelect.addEventListener('change', function() {
+            form.submit();
+        });
+    }
+    
+    if (resultTypeSelect) {
+        resultTypeSelect.addEventListener('change', function() {
+            form.submit();
+        });
+    }
+    
+    if (regionSelect) {
+        regionSelect.addEventListener('change', function() {
+            form.submit();
         });
     }
     
