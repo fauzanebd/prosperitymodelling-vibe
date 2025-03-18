@@ -20,10 +20,14 @@ class TrainedModel(db.Model):
     precision = db.Column(db.Float)
     recall = db.Column(db.Float)
     f1_score = db.Column(db.Float)
+    test_accuracy = db.Column(db.Float)  # Added test accuracy
     training_time = db.Column(db.Float)  # in seconds
     inference_time = db.Column(db.Float)  # in seconds
     confusion_matrix = db.Column(db.Text)  # JSON string of confusion matrix
     feature_importance = db.Column(db.Text)  # JSON string of feature importance (for RF)
+    cv_scores = db.Column(db.Text)  # JSON string of cross-validation scores
+    mean_cv_accuracy = db.Column(db.Float)  # Mean of cross-validation scores
+    std_cv_accuracy = db.Column(db.Float)  # Standard deviation of cross-validation scores
     
     # Training parameters
     training_parameters = db.Column(db.Text)  # JSON string of training parameters
@@ -39,8 +43,14 @@ class TrainedModel(db.Model):
         self.precision = metrics.get('precision')
         self.recall = metrics.get('recall')
         self.f1_score = metrics.get('f1_score')
+        self.test_accuracy = metrics.get('test_accuracy')  # Added test accuracy
         self.training_time = metrics.get('training_time')
         self.confusion_matrix = json.dumps(metrics.get('confusion_matrix', []).tolist())
+        
+        # Save cross-validation scores
+        self.cv_scores = json.dumps(metrics.get('cv_scores', []))
+        self.mean_cv_accuracy = metrics.get('mean_cv_accuracy')
+        self.std_cv_accuracy = metrics.get('std_cv_accuracy')
         
         # Calculate inference time
         if model is not None and scaler is not None:
@@ -60,8 +70,10 @@ class TrainedModel(db.Model):
         else:
             self.inference_time = 0.0
         
-        # Save feature importance for Random Forest
-        if self.model_type == 'random_forest' and hasattr(model, 'feature_importances_'):
+        # Save feature importance
+        if 'feature_importance' in metrics and metrics['feature_importance']:
+            self.feature_importance = json.dumps(metrics['feature_importance'])
+        elif self.model_type == 'random_forest' and hasattr(model, 'feature_importances_'):
             feature_importance = dict(zip(feature_names, model.feature_importances_))
             self.feature_importance = json.dumps(feature_importance)
         
@@ -82,10 +94,14 @@ class TrainedModel(db.Model):
             'precision': self.precision,
             'recall': self.recall,
             'f1_score': self.f1_score,
+            'test_accuracy': self.test_accuracy,  # Added test accuracy
             'training_time': self.training_time,
             'inference_time': self.inference_time,
             'confusion_matrix': json.loads(self.confusion_matrix) if self.confusion_matrix else None,
-            'feature_importance': json.loads(self.feature_importance) if self.feature_importance else None
+            'feature_importance': json.loads(self.feature_importance) if self.feature_importance else None,
+            'cv_scores': json.loads(self.cv_scores) if self.cv_scores else [],
+            'mean_cv_accuracy': self.mean_cv_accuracy,
+            'std_cv_accuracy': self.std_cv_accuracy
         }
         return metrics
     

@@ -3,6 +3,7 @@ import numpy as np
 from app.models.indicators import INDICATOR_MODELS
 from app.models.thresholds import LabelingThreshold
 from app.migrations.import_data import manual_labeling
+from app.lib.data_processor import label_iqr
 from sqlalchemy import func
 from app import db
 
@@ -64,10 +65,11 @@ def label_indicator_value_for_inference(indicator_name, value):
             else:
                 return 'Menengah'
 
-def label_indicator_value(indicator_name, value):
+def label_indicator_value_for_training(indicator_name, value):
     """
     Label a single indicator value as 'Sejahtera', 'Menengah', or 'Tidak Sejahtera'
-    for training data
+    for model training. For manually labeled indicators, applies fixed thresholds.
+    For IQR-based indicators, recalculates thresholds based on all data points.
     
     Parameters:
     -----------
@@ -81,9 +83,115 @@ def label_indicator_value(indicator_name, value):
     str
         Label for the indicator value
     """
-    # For training data, we use the actual labels from the data
-    # This is the same implementation as for inference (for now)
-    return label_indicator_value_for_inference(indicator_name, value)
+    # Get the labeling threshold for this indicator
+    labeling_threshold = LabelingThreshold.query.filter_by(indicator=indicator_name).first()
+    
+    if not labeling_threshold:
+        # If no threshold exists, create a new one using IQR method
+        return _recalculate_iqr_labels_for_indicator(indicator_name, value)
+    
+    # For manually labeled indicators, use the predefined thresholds
+    if labeling_threshold.labeling_method == 'manual':
+        if labeling_threshold.is_reverse:
+            # Lower values are better
+            if value < labeling_threshold.low_threshold:
+                return 'Sejahtera'
+            elif value > labeling_threshold.high_threshold:
+                return 'Tidak Sejahtera'
+            else:
+                return 'Menengah'
+        else:
+            # Higher values are better
+            if value > labeling_threshold.high_threshold:
+                return 'Sejahtera'
+            elif value < labeling_threshold.low_threshold:
+                return 'Tidak Sejahtera'
+            else:
+                return 'Menengah'
+    else:
+        # For IQR-based labeling, recalculate thresholds based on all data points
+        return _recalculate_iqr_labels_for_indicator(indicator_name, value)
+
+def _recalculate_iqr_labels_for_indicator(indicator_name, current_value=None):
+    """
+    Recalculate IQR-based thresholds for an indicator and update the database.
+    Optionally, also label a specific value based on the new thresholds.
+    
+    Parameters:
+    -----------
+    indicator_name : str
+        Name of the indicator
+    current_value : float, optional
+        Value to label (if None, only updates thresholds)
+        
+    Returns:
+    --------
+    str or None
+        Label for the current_value if provided, else None
+    """
+    # Get the model class for this indicator
+    model_class = INDICATOR_MODELS.get(indicator_name)
+    if not model_class:
+        return None
+    
+    # Get all data for this indicator
+    all_data = model_class.query.all()
+    if not all_data:
+        return None
+    
+    # Extract values into a DataFrame
+    df = pd.DataFrame({
+        'wilayah': [d.region for d in all_data],
+        'year': [d.year for d in all_data],
+        indicator_name: [d.value for d in all_data]
+    })
+    
+    # Check if this indicator should use reverse labeling (lower is better)
+    is_reverse = indicator_name in [
+        'tingkat_pengangguran_terbuka',
+        'penduduk_miskin',
+        'kematian_balita',
+        'kematian_bayi',
+        'kematian_ibu',
+        'persentase_balita_stunting'
+    ]
+    
+    # Use the label_iqr function from app.lib.data_processor
+    labels, threshold = label_iqr(indicator_name, df, indicator_name, reverse=is_reverse)
+    
+    # Update or create the LabelingThreshold object in the database
+    db_threshold = LabelingThreshold.query.filter_by(indicator=indicator_name).first()
+    if db_threshold:
+        db_threshold.sejahtera_threshold = threshold.sejahtera_threshold
+        db_threshold.menengah_threshold = threshold.menengah_threshold
+        db_threshold.tidak_sejahtera_threshold = threshold.tidak_sejahtera_threshold
+        db_threshold.labeling_method = threshold.labeling_method
+        db_threshold.is_reverse = threshold.is_reverse
+        db_threshold.low_threshold = threshold.low_threshold
+        db_threshold.high_threshold = threshold.high_threshold
+    else:
+        db.session.add(threshold)
+    
+    db.session.commit()
+    
+    # Label the current value if provided
+    if current_value is not None:
+        if is_reverse:
+            if current_value < threshold.low_threshold:
+                return 'Sejahtera'
+            elif current_value > threshold.high_threshold:
+                return 'Tidak Sejahtera'
+            else:
+                return 'Menengah'
+        else:
+            if current_value > threshold.high_threshold:
+                return 'Sejahtera'
+            elif current_value < threshold.low_threshold:
+                return 'Tidak Sejahtera'
+            else:
+                return 'Menengah'
+    
+    return None
 
 def get_all_indicator_data(indicator_name):
     """

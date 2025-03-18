@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_val_score, cross_val_predict
+from sklearn.model_selection import cross_val_score, cross_val_predict, train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 from sklearn.preprocessing import StandardScaler
 import time
@@ -32,29 +32,43 @@ def train_random_forest(X, y, feature_names):
     # Start timer
     start_time = time.time()
     
+    # Create a 80-20 train-test split with stratification
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+    
     # Create and train the model
     model = RandomForestClassifier(
         n_estimators=100,
         max_depth=None,
         min_samples_split=2,
         min_samples_leaf=1,
+        bootstrap=True,
         random_state=42
     )
     
     # Standardize features
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
     
-    # Perform cross-validation
-    cv_scores = cross_val_score(model, X_scaled, y, cv=5)
-    y_pred_cv = cross_val_predict(model, X_scaled, y, cv=5)
+    # Perform cross-validation with k=10
+    cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=10)
+    y_pred_cv = cross_val_predict(model, X_train_scaled, y_train, cv=10)
     
     # Train the model on the full dataset
-    model.fit(X_scaled, y)
+    model.fit(X_train_scaled, y_train)
+    
+    # Make predictions on test set
+    y_pred_test = model.predict(X_test_scaled)
     
     # Calculate metrics
-    cm = confusion_matrix(y, y_pred_cv)
-    report = classification_report(y, y_pred_cv, output_dict=True)
+    cm = confusion_matrix(y_train, y_pred_cv)
+    report = classification_report(y_train, y_pred_cv, output_dict=True)
+    test_accuracy = accuracy_score(y_test, y_pred_test)
+    
+    # Get feature importances
+    feature_importances = dict(zip(feature_names, model.feature_importances_))
     
     # End timer
     end_time = time.time()
@@ -70,8 +84,13 @@ def train_random_forest(X, y, feature_names):
             'precision': report['1']['precision'] if '1' in report else 0,
             'recall': report['1']['recall'] if '1' in report else 0,
             'f1_score': report['1']['f1-score'] if '1' in report else 0,
+            'test_accuracy': test_accuracy,
             'training_time': training_time,
-            'confusion_matrix': cm
+            'confusion_matrix': cm,
+            'cv_scores': cv_scores.tolist(),
+            'mean_cv_accuracy': cv_scores.mean(),
+            'std_cv_accuracy': cv_scores.std(),
+            'feature_importance': feature_importances
         },
         'parameters': {
             'n_estimators': 100,
@@ -105,29 +124,46 @@ def train_logistic_regression(X, y, feature_names):
     # Start timer
     start_time = time.time()
     
+    # Create a 80-20 train-test split with stratification
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+    
     # Create and train the model
     model = LogisticRegression(
         C=1.0,
         penalty='l2',
         solver='lbfgs',
-        max_iter=1000,
+        max_iter=2000,  # Increased from 1000 to 2000 to match notebook
         random_state=42
     )
     
     # Standardize features
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
     
-    # Perform cross-validation
-    cv_scores = cross_val_score(model, X_scaled, y, cv=5)
-    y_pred_cv = cross_val_predict(model, X_scaled, y, cv=5)
+    # Perform cross-validation with k=10
+    cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=10)
+    y_pred_cv = cross_val_predict(model, X_train_scaled, y_train, cv=10)
     
     # Train the model on the full dataset
-    model.fit(X_scaled, y)
+    model.fit(X_train_scaled, y_train)
+    
+    # Make predictions on test set
+    y_pred_test = model.predict(X_test_scaled)
     
     # Calculate metrics
-    cm = confusion_matrix(y, y_pred_cv)
-    report = classification_report(y, y_pred_cv, output_dict=True)
+    cm = confusion_matrix(y_train, y_pred_cv)
+    report = classification_report(y_train, y_pred_cv, output_dict=True)
+    test_accuracy = accuracy_score(y_test, y_pred_test)
+    
+    # Get feature importances - for logistic regression, use coefficients
+    if hasattr(model, 'coef_'):
+        coefs = model.coef_[0] if model.coef_.ndim > 1 else model.coef_
+        feature_importances = dict(zip(feature_names, np.abs(coefs)))
+    else:
+        feature_importances = {}
     
     # End timer
     end_time = time.time()
@@ -143,14 +179,19 @@ def train_logistic_regression(X, y, feature_names):
             'precision': report['1']['precision'] if '1' in report else 0,
             'recall': report['1']['recall'] if '1' in report else 0,
             'f1_score': report['1']['f1-score'] if '1' in report else 0,
+            'test_accuracy': test_accuracy,
             'training_time': training_time,
-            'confusion_matrix': cm
+            'confusion_matrix': cm,
+            'cv_scores': cv_scores.tolist(),
+            'mean_cv_accuracy': cv_scores.mean(),
+            'std_cv_accuracy': cv_scores.std(),
+            'feature_importance': feature_importances
         },
         'parameters': {
             'C': 1.0,
             'penalty': 'l2',
             'solver': 'lbfgs',
-            'max_iter': 1000,
+            'max_iter': 2000,
             'random_state': 42
         }
     }

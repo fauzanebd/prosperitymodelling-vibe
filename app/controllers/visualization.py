@@ -44,6 +44,7 @@ def model_performance():
     if selected_model:
         # Get model metrics
         metrics = selected_model.get_metrics()
+        parameters = selected_model.get_parameters()
         
         # If a specific year is selected, filter the confusion matrix data
         if evaluation_year != 'all' and metrics:
@@ -112,17 +113,97 @@ def model_performance():
         
         # Generate confusion matrix plot
         confusion_matrix_json = None
-        if metrics['confusion_matrix'] is not None:
+        if metrics.get('confusion_matrix') is not None:
             confusion_matrix_json = generate_confusion_matrix_plot(metrics['confusion_matrix'])
         
         # Generate feature importance plot
         feature_importance_json = None
-        if metrics['feature_importance']:
+        if metrics.get('feature_importance'):
             feature_importance_json = generate_feature_importance_plot(metrics['feature_importance'])
+        
+        # Generate cross-validation scores plot
+        cv_scores_json = None
+        if metrics.get('cv_scores'):
+            import plotly.graph_objects as go
+            import numpy as np
+            
+            # Create figure for CV scores
+            fig = go.Figure()
+            
+            # Add bar chart for CV scores
+            cv_scores = metrics['cv_scores']
+            fold_numbers = list(range(1, len(cv_scores) + 1))
+            
+            # Add bars for each fold's accuracy
+            fig.add_trace(
+                go.Bar(
+                    x=fold_numbers,
+                    y=[score * 100 for score in cv_scores],
+                    name='Fold Accuracy',
+                    text=[f"{score * 100:.2f}%" for score in cv_scores],
+                    textposition='auto',
+                    marker_color='rgb(26, 118, 255)'
+                )
+            )
+            
+            # Add a line for the mean accuracy
+            mean_accuracy = metrics['mean_cv_accuracy'] * 100
+            fig.add_trace(
+                go.Scatter(
+                    x=fold_numbers,
+                    y=[mean_accuracy] * len(fold_numbers),
+                    mode='lines',
+                    name=f'Mean Accuracy: {mean_accuracy:.2f}%',
+                    line=dict(color='red', width=2, dash='dash')
+                )
+            )
+            
+            # Add error bars showing standard deviation
+            std_accuracy = metrics['std_cv_accuracy'] * 100
+            fig.add_trace(
+                go.Scatter(
+                    x=fold_numbers,
+                    y=[mean_accuracy + std_accuracy] * len(fold_numbers),
+                    mode='lines',
+                    name=f'Mean + Std: {(mean_accuracy + std_accuracy):.2f}%',
+                    line=dict(color='green', width=1, dash='dot'),
+                    showlegend=True
+                )
+            )
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=fold_numbers,
+                    y=[mean_accuracy - std_accuracy] * len(fold_numbers),
+                    mode='lines',
+                    name=f'Mean - Std: {(mean_accuracy - std_accuracy):.2f}%',
+                    line=dict(color='orange', width=1, dash='dot'),
+                    showlegend=True
+                )
+            )
+            
+            # Update layout
+            fig.update_layout(
+                title='Cross-Validation Accuracy by Fold',
+                xaxis_title='Fold Number',
+                yaxis_title='Accuracy (%)',
+                yaxis=dict(range=[
+                    max(0, min([score * 100 for score in cv_scores]) - 5),
+                    min(100, max([score * 100 for score in cv_scores]) + 5)
+                ]),
+                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+                margin=dict(l=50, r=50, t=80, b=50),
+                plot_bgcolor='rgb(240, 240, 240)'
+            )
+            
+            # Convert to JSON
+            cv_scores_json = fig.to_json()
     else:
         metrics = None
+        parameters = None
         confusion_matrix_json = None
         feature_importance_json = None
+        cv_scores_json = None
     
     return render_template('visualization/model_performance.html',
                           models=models,
@@ -130,8 +211,10 @@ def model_performance():
                           model_type=model_type,
                           evaluation_year=evaluation_year,
                           metrics=metrics,
+                          parameters=parameters,
                           confusion_matrix_json=confusion_matrix_json,
-                          feature_importance_json=feature_importance_json)
+                          feature_importance_json=feature_importance_json,
+                          cv_scores_json=cv_scores_json)
 
 @visualization_bp.route('/visualization/data')
 @login_required

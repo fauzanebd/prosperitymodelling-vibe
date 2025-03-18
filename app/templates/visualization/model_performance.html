@@ -2,41 +2,6 @@
 
 {% block title %}Model Performance - Prosperity Analysis{% endblock %}
 
-{% block extra_js %}
-<!-- Add Plotly.js -->
-<script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Auto-submit form when dropdowns change
-        const modelTypeSelect = document.getElementById('model_type');
-        const evaluationYearSelect = document.getElementById('evaluation_year');
-        
-        if (modelTypeSelect) {
-            modelTypeSelect.addEventListener('change', function() {
-                document.getElementById('performance-form').submit();
-            });
-        }
-        
-        if (evaluationYearSelect) {
-            evaluationYearSelect.addEventListener('change', function() {
-                document.getElementById('performance-form').submit();
-            });
-        }
-        
-        {% if confusion_matrix_json %}
-        var confusionData = {{ confusion_matrix_json|safe }};
-        Plotly.newPlot('confusion-matrix-plot', confusionData);
-        {% endif %}
-        
-        {% if feature_importance_json %}
-        var featureData = {{ feature_importance_json|safe }};
-        Plotly.newPlot('feature-importance-plot', featureData);
-        {% endif %}
-        
-    });
-</script>
-{% endblock %}
-
 {% block content %}
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
@@ -71,6 +36,61 @@
 </div>
 
 {% if metrics %}
+<!-- Model Summary -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">Model Summary - {{ model_type|replace('_', ' ')|title }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Model Parameters</h5>
+                        <table class="table table-bordered">
+                            <tbody>
+                                {% for key, value in parameters.items() %}
+                                <tr>
+                                    <th>{{ key|replace('_', ' ')|title }}</th>
+                                    <td>{{ value }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Training Details</h5>
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th>Training Time</th>
+                                    <td>{{ "%.2f"|format(metrics.training_time) }} seconds</td>
+                                </tr>
+                                <tr>
+                                    <th>Cross-Validation Folds</th>
+                                    <td>10-fold CV</td>
+                                </tr>
+                                <tr>
+                                    <th>Mean CV Accuracy</th>
+                                    <td>{{ "%.2f"|format(metrics.mean_cv_accuracy * 100) }}%</td>
+                                </tr>
+                                <tr>
+                                    <th>CV Standard Deviation</th>
+                                    <td>{{ "%.2f"|format(metrics.std_cv_accuracy * 100) }}%</td>
+                                </tr>
+                                <tr>
+                                    <th>Test Accuracy</th>
+                                    <td>{{ "%.2f"|format(metrics.test_accuracy * 100) }}%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Performance Metrics -->
 <div class="row mb-4">
     <div class="col-12">
@@ -150,6 +170,42 @@
     </div>
 </div>
 
+<!-- Cross-Validation Scores -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Cross-Validation Results (10-fold)</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Mean CV Accuracy</h5>
+                                <h2 class="display-4">{{ "%.2f"|format(metrics.mean_cv_accuracy * 100) }}%</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Standard Deviation</h5>
+                                <h2 class="display-4">{{ "%.2f"|format(metrics.std_cv_accuracy * 100) }}%</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div id="cv-scores-plot" style="width: 100%; min-height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Visualizations -->
 <div class="row">
     <!-- Confusion Matrix -->
@@ -217,4 +273,75 @@
   </div>
 </div>
 {% endif %}
+
+<!-- Hidden data section -->
+{% if confusion_matrix_json %}
+<div id="confusion-matrix-data" style="display: none;">{{ confusion_matrix_json|safe }}</div>
+{% endif %}
+
+{% if feature_importance_json %}
+<div id="feature-importance-data" style="display: none;">{{ feature_importance_json|safe }}</div>
+{% endif %}
+
+{% if cv_scores_json %}
+<div id="cv-scores-data" style="display: none;">{{ cv_scores_json|safe }}</div>
+{% endif %}
+
+<!-- Add Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit form when dropdowns change
+    const modelTypeSelect = document.getElementById('model_type');
+    const evaluationYearSelect = document.getElementById('evaluation_year');
+    
+    if (modelTypeSelect) {
+        modelTypeSelect.addEventListener('change', function() {
+            document.getElementById('performance-form').submit();
+        });
+    }
+    
+    if (evaluationYearSelect) {
+        evaluationYearSelect.addEventListener('change', function() {
+            document.getElementById('performance-form').submit();
+        });
+    }
+    
+    // Handle Confusion Matrix Plot
+    const confusionMatrixData = document.getElementById('confusion-matrix-data');
+    const confusionMatrixPlot = document.getElementById('confusion-matrix-plot');
+    if (confusionMatrixData && confusionMatrixPlot) {
+        try {
+            const confusionData = JSON.parse(confusionMatrixData.textContent);
+            Plotly.newPlot('confusion-matrix-plot', confusionData);
+        } catch (e) {
+            console.error("Error plotting confusion matrix:", e);
+        }
+    }
+    
+    // Handle Feature Importance Plot
+    const featureImportanceData = document.getElementById('feature-importance-data');
+    const featureImportancePlot = document.getElementById('feature-importance-plot');
+    if (featureImportanceData && featureImportancePlot) {
+        try {
+            const featureData = JSON.parse(featureImportanceData.textContent);
+            Plotly.newPlot('feature-importance-plot', featureData);
+        } catch (e) {
+            console.error("Error plotting feature importance:", e);
+        }
+    }
+    
+    // Handle CV Scores Plot
+    const cvScoresData = document.getElementById('cv-scores-data');
+    const cvScoresPlot = document.getElementById('cv-scores-plot');
+    if (cvScoresData && cvScoresPlot) {
+        try {
+            const cvData = JSON.parse(cvScoresData.textContent);
+            Plotly.newPlot('cv-scores-plot', cvData);
+        } catch (e) {
+            console.error("Error plotting CV scores:", e);
+        }
+    }
+});
+</script>
 {% endblock %}

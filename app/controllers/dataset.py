@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app.models.indicators import INDICATOR_MODELS
 from app.models.thresholds import LabelingThreshold
 from app import db
-from app.services.data_processor import preprocess_indicator_value, label_indicator_value_for_inference
+from app.services.data_processor import preprocess_indicator_value, label_indicator_value_for_inference, label_indicator_value_for_training
 from app.services.model_trainer import retrain_model_if_needed, generate_predictions, delete_old_models
 from sqlalchemy import func
 import pandas as pd
@@ -355,14 +355,14 @@ def add_for_training():
                 if existing_data:
                     # Update existing data
                     processed_value = preprocess_indicator_value(indicator, value)
-                    label = label_indicator_value(indicator, processed_value)
+                    label = label_indicator_value_for_training(indicator, processed_value)
                     
                     existing_data.value = processed_value
                     existing_data.label_sejahtera = label
                 else:
                     # Create new data
                     processed_value = preprocess_indicator_value(indicator, value)
-                    label = label_indicator_value(indicator, processed_value)
+                    label = label_indicator_value_for_training(indicator, processed_value)
                     
                     new_data = model_class(region=region, year=year, value=processed_value, label_sejahtera=label)
                     db.session.add(new_data)
