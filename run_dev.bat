@@ -18,11 +18,11 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 REM Initialize the database
-python -m app.migrations.init_db
+uv run python -m app.migrations.init_db
 
 REM Import data
-python -m app.migrations.import_data
+uv run python -m app.migrations.import_data
 
 REM Run the Flask development server on port 5001
 set FLASK_RUN_PORT=5001
-python run.py --port 5001 
+uv run python run.py --port 5001 
