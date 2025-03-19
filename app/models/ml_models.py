@@ -39,18 +39,18 @@ class TrainedModel(db.Model):
         self.feature_names = json.dumps(feature_names)
         
         # Save metrics
-        self.accuracy = metrics.get('accuracy')
-        self.precision = metrics.get('precision')
-        self.recall = metrics.get('recall')
-        self.f1_score = metrics.get('f1_score')
-        self.test_accuracy = metrics.get('test_accuracy')  # Added test accuracy
-        self.training_time = metrics.get('training_time')
+        self.accuracy = float(metrics.get('accuracy'))
+        self.precision = float(metrics.get('precision'))
+        self.recall = float(metrics.get('recall'))
+        self.f1_score = float(metrics.get('f1_score'))
+        self.test_accuracy = float(metrics.get('test_accuracy'))  # Added test accuracy
+        self.training_time = float(metrics.get('training_time'))
         self.confusion_matrix = json.dumps(metrics.get('confusion_matrix', []).tolist())
         
         # Save cross-validation scores
         self.cv_scores = json.dumps(metrics.get('cv_scores', []))
-        self.mean_cv_accuracy = metrics.get('mean_cv_accuracy')
-        self.std_cv_accuracy = metrics.get('std_cv_accuracy')
+        self.mean_cv_accuracy = float(metrics.get('mean_cv_accuracy'))
+        self.std_cv_accuracy = float(metrics.get('std_cv_accuracy'))
         
         # Calculate inference time
         if model is not None and scaler is not None:

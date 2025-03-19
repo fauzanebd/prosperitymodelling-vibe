@@ -403,9 +403,6 @@ prosperity-web/
 3. Start with `docker-compose up`
 4. Access application at http://localhost:5000
 
-## Development Workflow
+## Development Notes
 
 1. Use uv for dependency management
-2. Run migrations with Flask-Migrate
-3. Use Blueprint pattern for organizing routes
-4. Follow RESTful API design

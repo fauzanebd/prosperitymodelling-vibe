@@ -55,14 +55,15 @@ def generate_confusion_matrix_plot(cm):
     # Add text annotations
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
+            # Determine annotation color based on the value
+            annotation_color = "black" if cm[i, j] < np.max(cm) * 0.5 else "white"
             fig.add_annotation(
                 x=labels[j],
                 y=labels[i],
                 text=f"{cm[i, j]}<br>({cm_norm[i, j]:.1%})",
                 showarrow=False,
-                font=dict(color="black")
+                font=dict(color=annotation_color)
             )
-    
     # Update layout
     fig.update_layout(
         title='Confusion Matrix',

@@ -223,7 +223,26 @@ def import_data():
             thresholds.append(threshold)
             all_data_final[indicator] = df_labeled
         
-        db.session.add_all(thresholds)
+        # Update or insert thresholds
+        for threshold in thresholds:
+            # Check if threshold for this indicator already exists
+            existing_threshold = LabelingThreshold.query.filter_by(indicator=threshold.indicator).first()
+            
+            if existing_threshold:
+                # Update existing threshold
+                existing_threshold.sejahtera_threshold = threshold.sejahtera_threshold
+                existing_threshold.menengah_threshold = threshold.menengah_threshold
+                existing_threshold.tidak_sejahtera_threshold = threshold.tidak_sejahtera_threshold
+                existing_threshold.labeling_method = threshold.labeling_method
+                existing_threshold.is_reverse = threshold.is_reverse
+                existing_threshold.low_threshold = threshold.low_threshold
+                existing_threshold.high_threshold = threshold.high_threshold
+                print(f"Updated threshold for {threshold.indicator}")
+            else:
+                # Insert new threshold
+                db.session.add(threshold)
+                print(f"Inserted new threshold for {threshold.indicator}")
+        
         db.session.commit()
         
         # Import data into the database

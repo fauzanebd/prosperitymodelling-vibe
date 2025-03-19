@@ -347,7 +347,7 @@ def generate_predictions(model_id):
                 year=year,
                 model_id=model_id,
                 predicted_class=predicted_classes[i],
-                prediction_probability=prediction_probabilities[i]
+                prediction_probability=float(prediction_probabilities[i])
             )
             predictions.append(prediction)
             all_predictions.append(prediction)

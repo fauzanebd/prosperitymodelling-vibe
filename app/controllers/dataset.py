@@ -209,7 +209,7 @@ def add_for_inference():
                         year=year,
                         model_id=best_model.id,
                         predicted_class=predicted_class,
-                        prediction_probability=prediction_prob
+                        prediction_probability=float(prediction_prob)
                     )
                     
                     db.session.add(prediction)

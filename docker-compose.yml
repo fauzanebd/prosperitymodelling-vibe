@@ -3,32 +3,37 @@ version: "3"
 services:
   web:
     build: .
-    ports:
-      - "5000:5000"
+    image: kesejahteraan:latest
+    restart: always
     depends_on:
       - db
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/prosperity
       - SECRET_KEY=change_this_in_production
-    volumes:
-      - .:/app
+    networks:
+      - app-network
+    ports:
+      - "5001:5000"
     command: >
-      bash -c "
-        python -m app.migrations.init_db &&
-        python -m app.migrations.import_data &&
-        gunicorn --bind 0.0.0.0:5000 run:app
-      "
+      bash -c "python -m app.migrations.init_db &&
+               python -m app.migrations.import_data &&
+               gunicorn --workers=1 --bind=0.0.0.0:5000 run:app"
 
   db:
     image: postgres:13
+    restart: always
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=prosperity
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   postgres_data:
