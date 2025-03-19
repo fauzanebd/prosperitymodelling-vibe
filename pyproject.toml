@@ -7,7 +7,7 @@ name = "kesejahteraan"
 version = "0.1.0"
 description = "Data exploration project for welfare indicators analysis"
 readme = "README.md"
-requires-python = ">=3.8,<3.12"
+requires-python = ">=3.11.10"
 license = {text = "MIT"}
 authors = [
     {name = "fauzanebd"}
