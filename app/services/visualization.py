@@ -118,8 +118,8 @@ def generate_feature_importance_plot(feature_importance):
     
     # Update layout
     fig.update_layout(
-        xaxis_title='Garis Horizontal',
-        yaxis_title='Garis Vertikal',
+        xaxis_title='Tingkat Kepentingan',
+        yaxis_title='Fitur',
         width=600,  # Adjust width to fit card better
         height=600,
         margin=dict(l=200, r=20, t=30, b=50),  # Increase left margin for labels
