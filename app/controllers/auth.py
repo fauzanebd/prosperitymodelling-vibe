@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import User
 from app import db
@@ -6,45 +6,67 @@ from werkzeug.security import generate_password_hash
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard.index'))
+# Create a default user for automatic login
+def create_default_user():
+    # Create regular user if not exists
+    if not User.query.filter_by(username='pengunjung', is_admin=False).first():
+        user = User(username='pengunjung', is_admin=False)
+        user.set_password('pengunjung123')
+        db.session.add(user)
+        db.session.commit()
     
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        user = User.query.filter_by(username=username).first()
-        
-        if user and user.check_password(password):
-            login_user(user)
-            flash('Logged in successfully.', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('dashboard.index'))
-        else:
-            flash('Invalid username or password.', 'error')
-    
-    return render_template('auth/login.html')
-
-@auth_bp.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    flash('Logged out successfully.', 'success')
-    return redirect(url_for('auth.login'))
-
-# Create initial admin user
-def create_admin():
-    if not User.query.filter_by(username='admin').first():
+    # Create admin if not exists
+    if not User.query.filter_by(username='admin', is_admin=True).first():
         admin = User(username='admin', is_admin=True)
         admin.set_password('admin123')
         db.session.add(admin)
         db.session.commit()
 
-# Register the create_admin function to be called when the app starts
+@auth_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    # Always redirect to dashboard with auto-login
+    return redirect(url_for('dashboard.index'))
+
+@auth_bp.route('/switch-to-admin', methods=['GET', 'POST'])
+@login_required
+def switch_to_admin():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        admin_user = User.query.filter_by(username=username, is_admin=True).first()
+        
+        if admin_user and admin_user.check_password(password):
+            logout_user()
+            login_user(admin_user)
+            flash('Beralih ke akun admin.', 'success')
+            return redirect(url_for('dashboard.index'))
+        else:
+            flash('Invalid admin credentials.', 'danger')
+            
+    return render_template('auth/admin_login.html')
+
+@auth_bp.route('/switch-to-user')
+@login_required
+def switch_to_user():
+    user = User.query.filter_by(username='pengunjung', is_admin=False).first()
+    if user:
+        logout_user()
+        login_user(user)
+        flash('Beralih ke akun pengguna.', 'success')
+    else:
+        flash('Akun pengguna tidak ditemukan.', 'error')
+    return redirect(url_for('dashboard.index'))
+
+# Register the create functions to be called when the app starts
 @auth_bp.before_app_request
-def init_admin():
-    if not getattr(init_admin, '_is_initialized', False):
-        create_admin()
-        init_admin._is_initialized = True 
+def init_user_accounts():
+    if not getattr(init_user_accounts, '_is_initialized', False):
+        create_default_user()
+        init_user_accounts._is_initialized = True
+        
+        # Auto-login for non-authenticated users
+        if not current_user.is_authenticated and request.endpoint != 'static':
+            default_user = User.query.filter_by(username='pengunjung', is_admin=False).first()
+            if default_user:
+                login_user(default_user) 

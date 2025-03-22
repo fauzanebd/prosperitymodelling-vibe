@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
 
-{% block title %}Model Performance - Prosperity Analysis{% endblock %}
+{% block title %}Performa Model - Sejahteraku{% endblock %}
 
 {% block content %}
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">Model Performance Comparison</h4>
+        <h4 class="mb-0">Perbandingan Performa Model</h4>
     </div>
     <div class="card-body">
         <form method="GET" action="{{ url_for('visualization.model_performance') }}" id="performance-form">
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="model_type" class="form-label">Model Type</label>
+                        <label for="model_type" class="form-label">Jenis Model</label>
                         <select class="form-select" id="model_type" name="model_type">
                             <option value="random_forest" {% if model_type == 'random_forest' %}selected{% endif %}>Random Forest</option>
                             <option value="logistic_regression" {% if model_type == 'logistic_regression' %}selected{% endif %}>Logistic Regression</option>
@@ -21,9 +21,9 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="evaluation_year" class="form-label">Evaluation Year</label>
+                        <label for="evaluation_year" class="form-label">Tahun Evaluasi</label>
                         <select class="form-select" id="evaluation_year" name="evaluation_year">
-                            <option value="all" {% if evaluation_year == 'all' %}selected{% endif %}>All Years</option>
+                            <option value="all" {% if evaluation_year == 'all' %}selected{% endif %}>Semua Tahun</option>
                             {% for y in range(2019, 2024) %}
                             <option value="{{ y }}" {% if y|string == evaluation_year %}selected{% endif %}>{{ y }}</option>
                             {% endfor %}
@@ -41,12 +41,12 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-info text-white">
-                <h4 class="mb-0">Model Summary - {{ model_type|replace('_', ' ')|title }}</h4>
+                <h4 class="mb-0">Ringkasan Model - {{ model_type|replace('_', ' ')|title }}</h4>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <h5>Model Parameters</h5>
+                    <!-- <div class="col-md-6">
+                        <h5>Parameter Model</h5>
                         <table class="table table-bordered">
                             <tbody>
                                 {% for key, value in parameters.items() %}
@@ -57,14 +57,14 @@
                                 {% endfor %}
                             </tbody>
                         </table>
-                    </div>
+                    </div> -->
                     <div class="col-md-6">
-                        <h5>Training Details</h5>
+                        <h5>Detail Hasil Pelatihan</h5>
                         <table class="table table-bordered">
                             <tbody>
                                 <tr>
-                                    <th>Training Time</th>
-                                    <td>{{ "%.2f"|format(metrics.training_time) }} seconds</td>
+                                    <th>Waktu Pelatihan</th>
+                                    <td>{{ "%.2f"|format(metrics.training_time) }} detik</td>
                                 </tr>
                                 <tr>
                                     <th>Cross-Validation Folds</th>
@@ -79,7 +79,7 @@
                                     <td>{{ "%.2f"|format(metrics.std_cv_accuracy * 100) }}%</td>
                                 </tr>
                                 <tr>
-                                    <th>Test Accuracy</th>
+                                    <th>Akurasi pada Data Uji</th>
                                     <td>{{ "%.2f"|format(metrics.test_accuracy * 100) }}%</td>
                                 </tr>
                             </tbody>
@@ -96,8 +96,8 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-success text-white">
-                <h4 class="mb-0">Performance Metrics - {{ model_type|replace('_', ' ')|title }} 
-                    {% if evaluation_year != 'all' %}({{ evaluation_year }}){% else %}(All Years){% endif %}
+                <h4 class="mb-0">Metrik Performa - {{ model_type|replace('_', ' ')|title }} 
+                    {% if evaluation_year != 'all' %}({{ evaluation_year }}){% else %}(Semua Tahun){% endif %}
                 </h4>
             </div>
             <div class="card-body">
@@ -175,11 +175,11 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-success text-white">
-                <h4 class="mb-0">Cross-Validation Results (10-fold)</h4>
+                <h4 class="mb-0">Hasil Cross-Validation (10-fold)</h4>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md">
                         <div class="card bg-light mb-3">
                             <div class="card-body text-center">
                                 <h5 class="card-title">Mean CV Accuracy</h5>
@@ -187,14 +187,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <!-- <div class="col-md-6">
                         <div class="card bg-light mb-3">
                             <div class="card-body text-center">
                                 <h5 class="card-title">Standard Deviation</h5>
                                 <h2 class="display-4">{{ "%.2f"|format(metrics.std_cv_accuracy * 100) }}%</h2>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
                 <div class="row mt-3">
                     <div class="col-12">
@@ -209,27 +209,24 @@
 <!-- Visualizations -->
 <div class="row">
     <!-- Confusion Matrix -->
-    <div class="col-12 mb-4">
+    <div class="col-md-6 mb-4">
         <div class="card">
             <div class="card-header bg-info text-white">
                 <h4 class="mb-0">Confusion Matrix {% if evaluation_year != 'all' %}({{ evaluation_year }}){% endif %}</h4>
             </div>
             <div class="card-body d-flex justify-content-center">
                 {% if confusion_matrix_json %}
-                <div id="confusion-matrix-plot" style="width: 100%; min-height: 450px;"></div>
+                <div id="confusion-matrix-plot" style="width: 100%; min-height: 500px;"></div>
                 {% else %}
                 <div class="alert alert-warning">
-                    No confusion matrix data available.
+                    Data confusion matrix tidak tersedia.
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
-</div>
-
-<div class="row">
-  <!-- Feature Importance -->
-    <div class="col-12 mb-4">
+    <!-- Feature Importance -->
+    <div class="col-md-6 mb-4">
         <div class="card">
             <div class="card-header bg-info text-white">
                 <h4 class="mb-0">Feature Importance</h4>
@@ -239,24 +236,26 @@
                 <div id="feature-importance-plot" style="width: 100%; min-height: 500px;"></div>
                 {% else %}
                 <div class="alert alert-warning">
-                    No feature importance data available.
+                    Data feature importance tidak tersedia.
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+
 {% else %}
 <!-- No Model Data Available -->
 <div class="row">
   <div class="col-12">
     <div class="card">
       <div class="card-header bg-warning text-dark">
-        <h4 class="mb-0">No Model Data Available</h4>
+        <h4 class="mb-0">Data Model Tidak Tersedia</h4>
       </div>
       <div class="card-body">
         <p class="lead">
-          There are no models trained yet. You need to train a model to view performance metrics and visualizations.
+          Anda belum melakukan pelatihan model. Silakan latih model untuk melihat hasil performa dan visualisasinya.
         </p>
         {% if current_user.is_admin %}
         <div class="text-center">
@@ -264,7 +263,7 @@
             href="{{ url_for('dataset.train_models') }}"
             class="btn btn-primary"
           >
-            <i class="fas fa-cogs me-2"></i> Train Models
+            <i class="fas fa-cogs me-2"></i> Latih Model
           </a>
         </div>
         {% endif %}

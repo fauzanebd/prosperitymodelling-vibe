@@ -1,13 +1,13 @@
-{% extends 'base.html' %} {% block title %}Add New Data - Prosperity Analysis{%
+{% extends 'base.html' %} {% block title %}Tambah Data Baru - Sejahteraku{%
 endblock %} {% block content %}
 <div class="card">
   <div class="card-header bg-primary text-white">
-    <h4 class="mb-0">Add New Data</h4>
+    <h4 class="mb-0">Tambah Data Baru</h4>
   </div>
   <div class="card-body">
     <form method="POST" action="{{ url_for('dataset.add') }}">
       <div class="mb-3">
-        <label for="indicator" class="form-label">Indicator</label>
+        <label for="indicator" class="form-label">Indikator</label>
         <select class="form-select" id="indicator" name="indicator" required>
           <option value="" selected disabled>Select an indicator</option>
           {% for indicator in indicators %}
@@ -18,7 +18,7 @@ endblock %} {% block content %}
         </select>
       </div>
       <div class="mb-3">
-        <label for="region" class="form-label">Region</label>
+        <label for="region" class="form-label">Wilayah</label>
         <input
           type="text"
           class="form-control"
@@ -27,7 +27,7 @@ endblock %} {% block content %}
           required
         />
         <div class="form-text">
-          Enter the region name exactly as it appears in the dataset.
+          Masukkan nama wilayah tepat seperti yang ada di dataset.
         </div>
       </div>
       <div class="mb-3">

@@ -1,5 +1,5 @@
-{% extends 'base.html' %} {% block title %}Edit Data - Prosperity Analysis{%
-endblock %} {% block content %}
+{% extends 'base.html' %} {% block title %}Edit Data - Sejahteraku{% endblock %}
+{% block content %}
 <div class="card">
   <div class="card-header bg-primary text-white">
     <h4 class="mb-0">Edit Data</h4>
@@ -11,12 +11,11 @@ endblock %} {% block content %}
         <strong>Indicator:</strong> {{ indicator|replace('_', ' ')|title }} ({{
         INDICATOR_MODELS[indicator].unit }})
       </p>
-      <p class="mb-1"><strong>Region:</strong> {{ data.region }}</p>
-      <p class="mb-0"><strong>Year:</strong> {{ data.year }}</p>
+      <p class="mb-1"><strong>Wilayah:</strong> {{ data.region }}</p>
+      <p class="mb-0"><strong>Tahun:</strong> {{ data.year }}</p>
       <p class="mt-3 mb-0">
-        <strong>Note:</strong> Editing this data may trigger model retraining if
-        the indicator is used by the model. Old models will be cleaned up to
-        maintain optimal performance.
+        <strong>Catatan:</strong> Melakukan pengeditan data akan membuat model
+        ditraining ulang.
       </p>
     </div>
 

@@ -1,15 +1,15 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
 from app.models.predictions import RegionPrediction
 from app.models.ml_models import TrainedModel
 from app.models.indicators import IndeksPembangunanManusia
 from sqlalchemy import func
 from app import db
+import json
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/')
-@login_required
 def index():
     # # Get the selected year (default to 'all')
     # selected_year = request.args.get('year', 'all')
@@ -22,6 +22,8 @@ def index():
     
     # Get prediction statistics if a model exists
     prediction_stats = None
+    region_prosperity_data = {}
+    
     if best_model:
         # Get regions with IPM data (training data)
         regions_with_ipm = db.session.query(IndeksPembangunanManusia.region).distinct().all()
@@ -44,6 +46,15 @@ def index():
             prediction_counts = {}
             for prediction in predictions:
                 prediction_counts[prediction.predicted_class] = prediction_counts.get(prediction.predicted_class, 0) + 1
+                
+                # Store region prosperity data for the map
+                # Clean the region name to match GeoJSON format if needed
+                region_name = prediction.region
+
+                region_name = " ".join(word.capitalize() for word in region_name.split(" "))
+                
+                # Store the prosperity data with the properly formatted region name
+                region_prosperity_data[region_name] = prediction.predicted_class
             
             # Calculate percentages
             total_predictions = len(predictions)
@@ -61,7 +72,12 @@ def index():
                 }
             }
     
+    # Convert region_prosperity_data to JSON for template to use as a data attribute
+    region_prosperity_json = json.dumps(region_prosperity_data)
+    
     return render_template('dashboard/index.html', 
                           prediction_stats=prediction_stats,
                           best_model=best_model,
-                          selected_year=selected_year) 
+                          selected_year=selected_year,
+                          region_prosperity_data=region_prosperity_data,
+                          region_prosperity_json=region_prosperity_json) 

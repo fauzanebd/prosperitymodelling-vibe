@@ -99,22 +99,35 @@ def generate_feature_importance_plot(feature_importance):
     # Sort by importance
     df = df.sort_values('Importance', ascending=False)
     
+    # Format feature names for better readability
+    df['Feature_Formatted'] = df['Feature'].apply(
+        lambda x: ' '.join(word.capitalize() for word in x.split('_'))
+    )
+
+    # drop year from feature_formatted
+    df.drop(df.loc[df['Feature'] == 'year'].index, inplace=True)
+    
     # Create Plotly figure
     fig = px.bar(
         df, 
         x='Importance', 
-        y='Feature',
+        y='Feature_Formatted',
         orientation='h',
         title='Feature Importance'
     )
     
     # Update layout
     fig.update_layout(
-        xaxis_title='Importance',
-        yaxis_title='Feature',
-        width=800,
-        height=600
+        xaxis_title='Garis Horizontal',
+        yaxis_title='Garis Vertikal',
+        width=600,  # Adjust width to fit card better
+        height=600,
+        margin=dict(l=200, r=20, t=30, b=50),  # Increase left margin for labels
+        autosize=True
     )
+    
+    # Tilt the y-axis labels to make them fit better
+    fig.update_yaxes(tickangle=-30, automargin=True)
     
     return plotly_to_json(fig)
 
@@ -292,14 +305,14 @@ def generate_regional_comparison_plot(regions, values, labels, indicator_name, y
         y='Value',
         color='Label',
         color_discrete_map=colors,
-        title=f'Regional Comparison of {indicator_name.replace("_", " ").title()} ({year})',
+        title=f'Perbandingan Wilayah untuk indikator {indicator_name.replace("_", " ").title()} ({year})',
         template='plotly_white',
         height=600
     )
     
     # Customize layout
     fig.update_layout(
-        xaxis_title='Region',
+        xaxis_title='Wilayah',
         yaxis_title=indicator_name.replace('_', ' ').title(),
         xaxis={'categoryorder': 'total ascending'}
     )
@@ -335,89 +348,179 @@ def generate_regional_comparison_plot(regions, values, labels, indicator_name, y
 
 def generate_prosperity_distribution_plot(df, result_type='predicted'):
     """
-    Generate a distribution plot for prosperity predictions
+    Generate a distribution plot for prosperity predictions vs actual
     
     Parameters:
     -----------
     df : pd.DataFrame
-        DataFrame containing the prediction data
-    result_type : str
-        Type of result to display ('predicted' or 'actual')
+        DataFrame containing the prediction data with both predicted and actual classes
         
     Returns:
     --------
     str
         JSON for Plotly figure
     """
+    # Get actual IPM data if not already in the dataframe
+    if 'actual_class' not in df.columns:
+        # Try to get actual data from region and year
+        if 'region' in df.columns and 'year' in df.columns:
+            # This part would need to be implemented by fetching actual data
+            # For now, we'll just show the predicted data
+            actual_data_available = False
+        else:
+            actual_data_available = False
+    else:
+        actual_data_available = True
+    
     # Count predictions by class
-    counts = df['predicted_class'].value_counts()
+    pred_counts = df['predicted_class'].value_counts().reset_index()
+    pred_counts.columns = ['Kelas Kesejahteraan', 'count']
+    pred_counts['type'] = 'Prediksi'
     
-    # Create title based on result type
-    title = f"Distribution of {'Predicted' if result_type == 'predicted' else 'Actual'} Prosperity"
+    # If actual data is available, count by class
+    if actual_data_available:
+        actual_counts = df['actual_class'].value_counts().reset_index()
+        actual_counts.columns = ['Kelas Kesejahteraan', 'count']
+        actual_counts['type'] = 'Aktual'
+        
+        # Combine the data
+        combined_data = pd.concat([pred_counts, actual_counts])
+    else:
+        combined_data = pred_counts
     
-    # Create Plotly figure
-    colors = {'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'}
+    # Define colors
+    colors = {'Sejahtera': '#28a745', 'Menengah': '#ffc107', 'Tidak Sejahtera': '#dc3545'}
+    
+    # Create Plotly figure for grouped bar chart
     fig = px.bar(
-        x=counts.index, 
-        y=counts.values,
-        color=counts.index,
+        combined_data,
+        x='Kelas Kesejahteraan',
+        y='count',
+        color='Kelas Kesejahteraan',
+        barmode='group',
+        facet_col='type',
         color_discrete_map=colors,
-        title=title,
-        text=counts.values
+        text='count',
+        title="Perbandingan Distribusi Kesejahteraan Prediksi vs Aktual"
     )
     
     # Update layout
     fig.update_layout(
-        xaxis_title='Prosperity Class',
-        yaxis_title='Count',
-        width=700,
+        xaxis_title='Kelas Kesejahteraan',
+        yaxis_title='Jumlah Wilayah',
+        width=900,
         height=500,
-        showlegend=False
+        legend_title="Kelas Kesejahteraan",
     )
+    
+    # Clean up the facet labels
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     
     return plotly_to_json(fig)
 
-def generate_prosperity_trend_plot(df, result_type):
+def generate_prosperity_trend_plot(df, result_type=None):
     """
-    Generate a line plot showing the trend of prosperity over time
+    Generate a line plot showing the trend of prosperity over time for both predicted and actual
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        DataFrame containing the prediction data with both predicted and actual classes
+    result_type : str, optional
+        Not used anymore, kept for backward compatibility
+        
+    Returns:
+    --------
+    str
+        JSON for Plotly figure
     """
-    # Group data by year and count classes
-    pivot_df = df.groupby(['year', 'predicted_class']).size().reset_index(name='count')
+    # Check if we have actual data
+    has_actual_data = 'actual_class' in df.columns
     
     # Create figure
-    fig = go.Figure()
+    fig = make_subplots(rows=1, cols=2, 
+                       subplot_titles=("Kesejahteraan (Prediksi)", "Kesejahteraan (Aktual)"),
+                       shared_yaxes=True)
     
-    # Add lines for each class
-    for class_label in pivot_df['predicted_class'].unique():
-        class_data = pivot_df[pivot_df['predicted_class'] == class_label]
+    # Colors for classes
+    colors = {
+        'Sejahtera': '#28a745', 
+        'Menengah': '#ffc107', 
+        'Tidak Sejahtera': '#dc3545'
+    }
+    
+    # Process predicted data
+    # Group data by year and count classes
+    pred_pivot = df.groupby(['year', 'predicted_class']).size().reset_index(name='count')
+    
+    # Add lines for each predicted class
+    for class_label in pred_pivot['predicted_class'].unique():
+        class_data = pred_pivot[pred_pivot['predicted_class'] == class_label]
         fig.add_trace(
             go.Scatter(
                 x=class_data['year'], 
                 y=class_data['count'],
                 mode='lines+markers',
-                name=class_label,
+                name=f"Prediksi: {class_label}",
                 line=dict(
                     width=3,
-                    color='green' if class_label == 'Sejahtera' else 'orange' if class_label == 'Menengah' else 'red'
+                    color=colors.get(class_label, '#000000')
                 ),
-                marker=dict(size=10)
-            )
+                marker=dict(size=8)
+            ),
+            row=1, col=1
         )
     
-    # Update layout
+    # Process actual data if available
+    if has_actual_data:
+        actual_pivot = df.groupby(['year', 'actual_class']).size().reset_index(name='count')
+        
+        # Add lines for each actual class
+        for class_label in actual_pivot['actual_class'].unique():
+            class_data = actual_pivot[actual_pivot['actual_class'] == class_label]
+            fig.add_trace(
+                go.Scatter(
+                    x=class_data['year'], 
+                    y=class_data['count'],
+                    mode='lines+markers',
+                    name=f"Aktual: {class_label}",
+                    line=dict(
+                        width=3,
+                        color=colors.get(class_label, '#000000'),
+                        dash='dot'  # Dotted line to distinguish from prediction
+                    ),
+                    marker=dict(size=8)
+                ),
+                row=1, col=2
+            )
+    
+    # Get unique years
     years = sorted(df['year'].unique())
+    
+    # Update layout
     fig.update_layout(
-        title=f"Trend of {'Predicted' if result_type == 'predicted' else 'Actual'} Prosperity Over Time",
-        xaxis=dict(
-            title='Year',
-            tickmode='array',
-            tickvals=years,
-            ticktext=[str(y) for y in years],
+        title="Perbandingan Tren Kesejahteraan Prediksi vs Aktual",
+        height=500,
+        width=1000,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.2,
+            xanchor="center",
+            x=0.5
         ),
-        yaxis=dict(title='Number of Regions'),
-        legend=dict(title='Prosperity Class'),
         hovermode='x unified'
     )
+    
+    # Update axes
+    fig.update_xaxes(
+        title='Tahun',
+        tickmode='array',
+        tickvals=years,
+        ticktext=[str(y) for y in years],
+    )
+    
+    fig.update_yaxes(title='Jumlah Wilayah')
     
     return fig.to_json()
 
@@ -435,11 +538,11 @@ def generate_prosperity_comparison_plot(df):
     
     # Count predicted classes
     predicted_counts = df['predicted_class'].value_counts().reset_index()
-    predicted_counts.columns = ['class', 'count']
+    predicted_counts.columns = ['Kelas Kesejahteraan', 'count']
     
     # Count actual classes
     actual_counts = df['actual_class'].value_counts().reset_index()
-    actual_counts.columns = ['class', 'count']
+    actual_counts.columns = ['Kelas Kesejahteraan', 'count']
     
     # Define colors
     colors = {'Sejahtera': 'green', 'Menengah': 'orange', 'Tidak Sejahtera': 'red'}
@@ -447,10 +550,10 @@ def generate_prosperity_comparison_plot(df):
     # Add predicted pie chart
     fig.add_trace(
         go.Pie(
-            labels=predicted_counts['class'],
+            labels=predicted_counts['Kelas Kesejahteraan'],
             values=predicted_counts['count'],
             name="Predicted",
-            marker_colors=[colors.get(cls, 'gray') for cls in predicted_counts['class']],
+            marker_colors=[colors.get(cls, 'gray') for cls in predicted_counts['Kelas Kesejahteraan']],
             textinfo='percent+label',
             hole=0.3
         ),
@@ -460,10 +563,10 @@ def generate_prosperity_comparison_plot(df):
     # Add actual pie chart
     fig.add_trace(
         go.Pie(
-            labels=actual_counts['class'],
+            labels=actual_counts['Kelas Kesejahteraan'],
             values=actual_counts['count'],
             name="Actual",
-            marker_colors=[colors.get(cls, 'gray') for cls in actual_counts['class']],
+            marker_colors=[colors.get(cls, 'gray') for cls in actual_counts['Kelas Kesejahteraan']],
             textinfo='percent+label',
             hole=0.3
         ),
@@ -633,7 +736,7 @@ def generate_correlation_matrix_plot(df, year):
         corr_matrix,
         text_auto=True,
         color_continuous_scale='RdBu_r',
-        title=f'Correlation Matrix of Indicators ({year})',
+        title=f'Matriks Korelasi Indikator ({year})',
         template='plotly_white',
         height=600,
         width=800
@@ -723,7 +826,7 @@ def generate_comparison_plot(df, region):
     
     # Update layout
     fig.update_layout(
-        title=f'Prosperity Analysis for {region}',
+        title=f'Sejahteraku for {region}',
         width=900,
         height=400
     )

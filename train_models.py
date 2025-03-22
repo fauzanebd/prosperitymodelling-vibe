@@ -9,7 +9,7 @@ def main():
         success = retrain_model_if_needed('indeks_pembangunan_manusia')
         
         if success:
-            print("Models trained successfully!")
+            print("Model berhasil dilatih!")
             
             # Get the latest model
             latest_model = TrainedModel.query.order_by(TrainedModel.created_at.desc()).first()

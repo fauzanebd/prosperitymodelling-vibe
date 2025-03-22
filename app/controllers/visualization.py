@@ -226,132 +226,59 @@ def data_visualization():
     indicators = list(INDICATOR_MODELS.keys())
     indicators.sort()
     
-    # Get selected visualization type
-    viz_type = request.args.get('viz_type', 'distribution')
-    
-    # Define visualization types
-    viz_types = {
-        'distribution': 'Indicator Distribution',
-        'trend': 'Indicator Trend',
-        'label_distribution': 'Label Distribution',
-        'label_trend': 'Label Trend',
-        'correlation': 'Correlation Matrix',
-        'regional_comparison': 'Regional Comparison'
-    }
-    
     # Get selected indicator
     selected_indicator = request.args.get('indicator', indicators[0])
     
-    # Get selected year for distribution, regional, label distribution
+    # Get selected year for label distribution
     year = request.args.get('year', '2019')
+    
+    # Set viz_type (no longer using from request but keeping for template compatibility)
+    viz_type = 'label_distribution'
     
     # Get regions with IPM data (training data) - exclude inference-only regions
     regions_with_ipm = db.session.query(IndeksPembangunanManusia.region).distinct().all()
     regions_with_ipm = [r[0] for r in regions_with_ipm]
     
-    # Generate plot based on visualization type
-    plot_json = None
+    # Initialize JSON strings for plots
+    label_distribution_plot_json = None
+    label_trend_plot_json = None
     
-    # For each visualization type, filter data to include only training regions
-    if viz_type == 'distribution' and selected_indicator:
-        model_class = INDICATOR_MODELS[selected_indicator]
-        data = model_class.query.filter(
-            model_class.year == int(year),
-            model_class.region.in_(regions_with_ipm)
-        ).all()
-        
-        if data:
-            values = [d.value for d in data]
-            plot_json = generate_indicator_distribution_plot(values, selected_indicator, year)
+    # Generate Label Distribution Plot
+    model_class = INDICATOR_MODELS[selected_indicator]
+    distribution_data = model_class.query.filter(
+        model_class.year == int(year),
+        model_class.region.in_(regions_with_ipm)
+    ).all()
     
-    elif viz_type == 'trend' and selected_indicator:
-        model_class = INDICATOR_MODELS[selected_indicator]
-        data = model_class.query.filter(
-            model_class.region.in_(regions_with_ipm)
-        ).all()
-        
-        if data:
-            # Group data by year and calculate mean
-            years = sorted(list(set([d.year for d in data])))
-            mean_values = []
-            for y in years:
-                year_data = [d.value for d in data if d.year == y]
-                mean_values.append(sum(year_data) / len(year_data) if year_data else 0)
-            
-            plot_json = generate_indicator_trend_plot(years, mean_values, selected_indicator)
+    if distribution_data:
+        labels = [d.label_sejahtera for d in distribution_data]
+        label_distribution_plot_json = generate_label_distribution_plot(labels, selected_indicator, year)
     
-    elif viz_type == 'label_distribution' and selected_indicator:
-        model_class = INDICATOR_MODELS[selected_indicator]
-        data = model_class.query.filter(
-            model_class.year == int(year),
-            model_class.region.in_(regions_with_ipm)
-        ).all()
-        
-        if data:
-            labels = [d.label_sejahtera for d in data]
-            plot_json = generate_label_distribution_plot(labels, selected_indicator, year)
+    # Generate Label Trend Plot
+    trend_data = model_class.query.filter(
+        model_class.region.in_(regions_with_ipm)
+    ).all()
     
-    elif viz_type == 'label_trend' and selected_indicator:
-        model_class = INDICATOR_MODELS[selected_indicator]
-        data = model_class.query.filter(
-            model_class.region.in_(regions_with_ipm)
-        ).all()
+    if trend_data:
+        # Group data by year and count labels
+        years = sorted(list(set([d.year for d in trend_data])))
+        sejahtera_counts = []
+        menengah_counts = []
+        tidak_sejahtera_counts = []
         
-        if data:
-            # Group data by year and count labels
-            years = sorted(list(set([d.year for d in data])))
-            sejahtera_counts = []
-            menengah_counts = []
-            tidak_sejahtera_counts = []
-            
-            for y in years:
-                year_data = [d.label_sejahtera for d in data if d.year == y]
-                sejahtera_counts.append(year_data.count('Sejahtera'))
-                menengah_counts.append(year_data.count('Menengah'))
-                tidak_sejahtera_counts.append(year_data.count('Tidak Sejahtera'))
-            
-            plot_json = generate_label_trend_plot(years, sejahtera_counts, menengah_counts, tidak_sejahtera_counts, selected_indicator)
+        for y in years:
+            year_data = [d.label_sejahtera for d in trend_data if d.year == y]
+            sejahtera_counts.append(year_data.count('Sejahtera'))
+            menengah_counts.append(year_data.count('Menengah'))
+            tidak_sejahtera_counts.append(year_data.count('Tidak Sejahtera'))
+        
+        label_trend_plot_json = generate_label_trend_plot(years, sejahtera_counts, menengah_counts, tidak_sejahtera_counts, selected_indicator)
     
-    elif viz_type == 'correlation':
-        # Create a combined dataset for the selected year with only training regions
-        combined_data = {}
-        
-        for indicator_name in indicators:
-            model_class = INDICATOR_MODELS[indicator_name]
-            data = model_class.query.filter(
-                model_class.year == int(year),
-                model_class.region.in_(regions_with_ipm)
-            ).all()
-            
-            if data:
-                combined_data[indicator_name] = {d.region: d.value for d in data}
-        
-        if combined_data:
-            # Convert to DataFrame
-            regions = set()
-            for indicator, values in combined_data.items():
-                regions.update(values.keys())
-            
-            df = pd.DataFrame(index=list(regions))
-            
-            for indicator, values in combined_data.items():
-                df[indicator] = df.index.map(values)
-            
-            plot_json = generate_correlation_matrix_plot(df, year)
-    
-    elif viz_type == 'regional_comparison' and selected_indicator:
-        model_class = INDICATOR_MODELS[selected_indicator]
-        data = model_class.query.filter(
-            model_class.year == int(year),
-            model_class.region.in_(regions_with_ipm)
-        ).all()
-        
-        if data:
-            regions = [d.region for d in data]
-            values = [d.value for d in data]
-            labels = [d.label_sejahtera for d in data]
-            
-            plot_json = generate_regional_comparison_plot(regions, values, labels, selected_indicator, year)
+    # Define visualization types dict (keeping for compatibility)
+    viz_types = {
+        'label_distribution': 'Distribusi Label',
+        'label_trend': 'Trend Label'
+    }
     
     return render_template('visualization/data_visualization.html',
                           indicators=indicators,
@@ -359,7 +286,8 @@ def data_visualization():
                           viz_type=viz_type,
                           viz_types=viz_types,
                           year=year,
-                          plot_json=plot_json)
+                          label_distribution_plot_json=label_distribution_plot_json,
+                          label_trend_plot_json=label_trend_plot_json)
 
 @visualization_bp.route('/visualization/model-results')
 @login_required
@@ -387,10 +315,10 @@ def model_results_visualization():
     
     # Get available visualization types
     viz_types = {
-        'prosperity_distribution': 'Prosperity Distribution',
-        'prosperity_trend': 'Prosperity Trend Over Time',
-        'prosperity_comparison': 'Predicted vs Actual Comparison',
-        'region_prediction': 'Region-specific Prediction'
+        'prosperity_distribution': 'Perbandingan Distribusi Kesejahteraan Prediksi vs Aktual',
+        'prosperity_trend': 'Perbandingan Tren Kesejahteraan Prediksi vs Aktual',
+        'prosperity_comparison': 'Perbandingan Prediksi vs Data Aktual',
+        'region_prediction': 'Prediksi Kesejahteraan tiap Wilayah'
     }
     
     # Get the best model based on accuracy
@@ -465,22 +393,60 @@ def model_results_visualization():
         predictions = query.all()
         
         if predictions:
-            # Convert to DataFrame
-            df = pd.DataFrame([(p.region, p.year, p.predicted_class, p.prediction_probability) for p in predictions],
-                             columns=['region', 'year', 'predicted_class', 'probability'])
+            # Get actual IPM data for the same regions and years
+            ipm_model = INDICATOR_MODELS.get('indeks_pembangunan_manusia')
+            data_with_actual = []
             
-            plot_json = generate_prosperity_distribution_plot(df, result_type)
+            for p in predictions:
+                # Get actual IPM data if available
+                actual_class = None
+                if ipm_model:
+                    ipm_data = ipm_model.query.filter_by(region=p.region, year=p.year).first()
+                    if ipm_data:
+                        actual_class = ipm_data.label_sejahtera
+                
+                data_with_actual.append({
+                    'region': p.region,
+                    'year': p.year,
+                    'predicted_class': p.predicted_class,
+                    'probability': p.prediction_probability,
+                    'actual_class': actual_class
+                })
+            
+            # Convert to DataFrame
+            df = pd.DataFrame(data_with_actual)
+            
+            plot_json = generate_prosperity_distribution_plot(df)
     
     elif viz_type == 'prosperity_trend' and best_model:
         # Get predictions
         predictions = RegionPrediction.query.filter_by(model_id=best_model.id).all()
         
         if predictions:
-            # Convert to DataFrame
-            df = pd.DataFrame([(p.region, p.year, p.predicted_class, p.prediction_probability) for p in predictions],
-                             columns=['region', 'year', 'predicted_class', 'probability'])
+            # Get actual IPM data for the same regions and years
+            ipm_model = INDICATOR_MODELS.get('indeks_pembangunan_manusia')
+            data_with_actual = []
             
-            plot_json = generate_prosperity_trend_plot(df, result_type)
+            for p in predictions:
+                # Get actual IPM data if available
+                actual_class = None
+                if ipm_model:
+                    ipm_data = ipm_model.query.filter_by(region=p.region, year=p.year).first()
+                    if ipm_data:
+                        actual_class = ipm_data.label_sejahtera
+                
+                data_with_actual.append({
+                    'region': p.region,
+                    'year': p.year,
+                    'predicted_class': p.predicted_class,
+                    'probability': p.prediction_probability,
+                    'actual_class': actual_class
+                })
+            
+            # Convert to DataFrame
+            df = pd.DataFrame(data_with_actual)
+            
+            plot_json = generate_prosperity_trend_plot(df)
             
     elif viz_type == 'prosperity_comparison' and best_model:
         # Get predictions
@@ -687,15 +653,15 @@ def model_results_visualization():
                 max_y = max(values) * 1.05
                 
                 fig.update_layout(
-                    title=f'Historical IPM Trend for {selected_region}',
+                    title=f'Tren Historis Indeks Pembangunan Manusia untuk {selected_region}',
                     xaxis=dict(
-                        title='Year',
+                        title='Tahun',
                         tickmode='array',
                         tickvals=years,
                         ticktext=[str(y) for y in years],
                     ),
                     yaxis=dict(
-                        title='IPM Value',
+                        title='Nilai Indeks Pembangunan Manusia',
                         range=[min_y, max_y]
                     ),
                     legend=dict(x=0.01, y=0.99),

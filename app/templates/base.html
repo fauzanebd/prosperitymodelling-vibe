@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Prosperity Analysis{% endblock %}</title>
+    <title>{% block title %}Sejahteraku{% endblock %}</title>
 
     <!-- Bootstrap CSS -->
     <link
@@ -30,7 +30,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container">
         <a class="navbar-brand" href="{{ url_for('dashboard.index') }}"
-          >Prosperity Analysis</a
+          >Sejahteraku</a
         >
         <button
           class="navbar-toggler"
@@ -51,7 +51,7 @@
                 class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
                 href="{{ url_for('dashboard.index') }}"
               >
-                <i class="fas fa-tachometer-alt"></i> Dashboard
+                <i class="fas fa-tachometer-alt"></i> Dasbor
               </a>
             </li>
             <li class="nav-item dropdown">
@@ -71,24 +71,24 @@
                     class="dropdown-item"
                     href="{{ url_for('dataset.index') }}"
                   >
-                    <i class="fas fa-table"></i> View Data
-                  </a>
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item"
-                    href="{{ url_for('dataset.inference_predictions') }}"
-                  >
-                    <i class="fas fa-brain"></i> Inference Predictions
+                    <i class="fas fa-table"></i> Lihat Data
                   </a>
                 </li>
                 {% if current_user.is_admin %}
                 <li>
                   <a
                     class="dropdown-item"
+                    href="{{ url_for('dataset.inference_predictions') }}"
+                  >
+                    <i class="fas fa-brain"></i> Buat Prediksi
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
                     href="{{ url_for('dataset.train_models') }}"
                   >
-                    <i class="fas fa-cogs"></i> Train Models
+                    <i class="fas fa-cogs"></i> Latih Model
                   </a>
                 </li>
                 {% endif %}
@@ -103,28 +103,28 @@
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
               >
-                <i class="fas fa-chart-bar"></i> Visualization
+                <i class="fas fa-chart-bar"></i> Visualisasi
               </a>
               <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                 <li>
                   <a
                     class="dropdown-item"
                     href="{{ url_for('visualization.data_visualization') }}"
-                    ><i class="fas fa-search"></i> Data Visualization (EDA)</a
+                    ><i class="fas fa-search"></i> Visualisasi Data (EDA)</a
                   >
                 </li>
                 <li>
                   <a
                     class="dropdown-item"
                     href="{{ url_for('visualization.model_performance') }}"
-                    ><i class="fas fa-chart-line"></i> Model Performance</a
+                    ><i class="fas fa-chart-line"></i> Performa Model</a
                   >
                 </li>
                 <li>
                   <a
                     class="dropdown-item"
                     href="{{ url_for('visualization.model_results_visualization') }}"
-                    ><i class="fas fa-chart-pie"></i> Model Results</a
+                    ><i class="fas fa-chart-pie"></i> Hasil Model</a
                   >
                 </li>
               </ul>
@@ -142,22 +142,39 @@
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
               >
-                <i class="fas fa-user"></i> {{ current_user.username }}
+                <i class="fas fa-user"></i>
+                {% if current_user.is_admin %}
+                <span class="badge bg-danger">Admin:</span>
+                {% endif %} {{ current_user.username }}
               </a>
               <ul
                 class="dropdown-menu dropdown-menu-end"
                 aria-labelledby="userDropdown"
               >
+                {% if current_user.is_admin %}
                 <li>
-                  <a class="dropdown-item" href="{{ url_for('auth.logout') }}"
-                    >Logout</a
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('auth.switch_to_user') }}"
                   >
+                    <i class="fas fa-user"></i> Beralih ke Akun Pengguna
+                  </a>
                 </li>
+                {% else %}
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('auth.switch_to_admin') }}"
+                  >
+                    <i class="fas fa-user-shield"></i> Beralih ke Akun Admin
+                  </a>
+                </li>
+                {% endif %}
               </ul>
             </li>
             {% else %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+              <a class="nav-link" href="{{ url_for('auth.login') }}">Masuk</a>
             </li>
             {% endif %}
           </ul>
@@ -193,7 +210,7 @@
         class="text-center p-3"
         style="background-color: rgba(0, 0, 0, 0.05)"
       >
-        © 2023 Prosperity Analysis
+        © 2025 Sejahteraku
       </div>
     </footer>
 

@@ -80,10 +80,11 @@ def add():
 @login_required
 def add_for_inference():
     """Add data for a new region for inference only"""
-    # Only admin can add data
-    if not current_user.is_admin:
-        flash('You do not have permission to add data', 'danger')
-        return redirect(url_for('dataset.index'))
+    
+    # # Only admin can add data
+    # if not current_user.is_admin:
+    #     flash('You do not have permission to add data', 'danger')
+    #     return redirect(url_for('dataset.index'))
     
     # Get all available indicators except indeks_pembangunan_manusia
     indicators = list(INDICATOR_MODELS.keys())
@@ -96,7 +97,7 @@ def add_for_inference():
         year = request.form.get('year', type=int)
         
         if not all([region, year]):
-            flash('Region and year are required', 'danger')
+            flash('Wilayah dan tahun diperlukan', 'danger')
             return render_template('dataset/add_for_inference.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
         
         # Check if any data already exists for this region and year
@@ -279,7 +280,7 @@ def inference_predictions():
     best_model = TrainedModel.query.order_by(TrainedModel.accuracy.desc()).first()
     
     if not best_model:
-        flash('No trained models available', 'warning')
+        flash('Belum ada model yang dilatih', 'warning')
         return render_template('dataset/inference_predictions.html', 
                               predictions=None,
                               regions=[],
@@ -352,7 +353,7 @@ def add_for_training():
         region = request.form.get('region')
         
         if not region:
-            flash('Region is required', 'danger')
+            flash('Wilayah diperlukan', 'danger')
             return render_template('dataset/add_for_training.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
         
         # Process each year and indicator
@@ -484,7 +485,7 @@ def delete_region():
     region = request.args.get('region')
     
     if not region:
-        flash('Region is required', 'danger')
+        flash('Wilayah diperlukan', 'danger')
         return redirect(url_for('dataset.index'))
     
     # Delete data for all indicators and years for the region
@@ -545,11 +546,11 @@ def train_models():
             if latest_model:
                 # Generate predictions using the latest model
                 predictions = generate_predictions(latest_model.id)
-                flash(f'Models trained successfully, old models cleaned up, and {len(predictions)} predictions generated', 'success')
+                flash(f'Model berhasil dilatih, model lama dibersihkan, dan {len(predictions)} prediksi telah dibuat', 'success')
             else:
-                flash('Models trained successfully but no model found for predictions', 'warning')
+                flash('Model berhasil dilatih tetapi tidak ada model yang ditemukan untuk prediksi', 'warning')
         else:
-            flash('Failed to train models', 'danger')
+            flash('Pelatihan model gagal', 'danger')
         
         return redirect(url_for('visualization.model_performance'))
     

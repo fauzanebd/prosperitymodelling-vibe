@@ -1,4 +1,4 @@
-// Custom JavaScript for Prosperity Analysis Application
+// Custom JavaScript for Sejahteraku Application
 
 document.addEventListener("DOMContentLoaded", function () {
   // Initialize tooltips

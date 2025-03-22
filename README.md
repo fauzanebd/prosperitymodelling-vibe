@@ -1,4 +1,4 @@
-# Prosperity Analysis Web Application
+# Sejahteraku Web Application
 
 This web application provides a user interface for analyzing regional prosperity based on various socioeconomic indicators. It allows users to view, add, and edit indicator data, as well as visualize the data and model performance.
 
@@ -99,7 +99,7 @@ This web application provides a user interface for analyzing regional prosperity
 - Admin user: username `admin`, password `admin123`
 - Regular user: username `user`, password `user123`
 
-### Dataset Management
+### Manajemen Data
 
 - View all indicators data with filtering and pagination
 - Add new data for indicators (admin only)

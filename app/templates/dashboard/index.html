@@ -1,16 +1,26 @@
-{% extends 'base.html' %} {% block title %}Dashboard - Prosperity Analysis{%
-endblock %} {% block content %}
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Sejahteraku{% endblock %}
+
+{% block head %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin=""/>
+<!-- Custom Map CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/map.css') }}">
+{% endblock %}
+
+{% block content %}
 <div class="row mb-4">
   <div class="col-12">
     <div class="card">
       <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">Prosperity Analysis Dashboard</h4>
+        <h4 class="mb-0">Halaman Utama</h4>
       </div>
       <div class="card-body">
         <p class="lead">
-          Welcome to the Prosperity Analysis Dashboard. This application allows
-          you to analyze regional prosperity based on various socioeconomic
-          indicators.
+          Selamat datang di Sejahteraku. Aplikasi ini memungkinkan Anda untuk menganalisis kesejahteraan daerah berdasarkan berbagai indikator sosial ekonomi.
         </p>
 
         <div class="row mt-4">
@@ -18,12 +28,12 @@ endblock %} {% block content %}
             <div class="card mb-3">
               <div class="card-body text-center">
                 <i class="fas fa-database fa-3x mb-3 text-primary"></i>
-                <h5 class="card-title">Dataset Management</h5>
+                <h5 class="card-title">Manajemen Data</h5>
                 <p class="card-text">
-                  View, add, and edit indicator data for different regions.
+                  Lihat, tambah, dan ubah data indikator untuk berbagai wilayah.
                 </p>
                 <a href="{{ url_for('dataset.index') }}" class="btn btn-primary"
-                  >Go to Dataset</a
+                  >Buka Manajemen Data</a
                 >
               </div>
             </div>
@@ -32,14 +42,14 @@ endblock %} {% block content %}
             <div class="card mb-3">
               <div class="card-body text-center">
                 <i class="fas fa-chart-line fa-3x mb-3 text-success"></i>
-                <h5 class="card-title">Data Visualization</h5>
+                <h5 class="card-title">Visualisasi Data</h5>
                 <p class="card-text">
                   Visualize indicator data and trends over time.
                 </p>
                 <a
                   href="{{ url_for('visualization.data_visualization') }}"
                   class="btn btn-success"
-                  >View Visualizations</a
+                  >Lihat Visualisasi</a
                 >
               </div>
             </div>
@@ -48,14 +58,14 @@ endblock %} {% block content %}
             <div class="card mb-3">
               <div class="card-body text-center">
                 <i class="fas fa-brain fa-3x mb-3 text-info"></i>
-                <h5 class="card-title">Model Performance</h5>
+                <h5 class="card-title">Performa Model</h5>
                 <p class="card-text">
-                  Compare performance of different machine learning models.
+                  Bandingkan dan lihat performa dari model yang digunakan.
                 </p>
                 <a
                   href="{{ url_for('visualization.model_performance') }}"
                   class="btn btn-info"
-                  >View Models</a
+                  >Lihat Performa Model</a
                 >
               </div>
             </div>
@@ -67,15 +77,47 @@ endblock %} {% block content %}
 </div>
 
 {% if prediction_stats %}
+<!-- West Java Map Section -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Peta Tingkat Kesejahteraan Jawa Barat</h4>
+        <form method="GET" action="{{ url_for('dashboard.index') }}" class="d-flex align-items-center">
+          <label for="map-year" class="text-white me-2">Tahun:</label>
+          <select class="form-select form-select-sm" id="map-year" name="year" onchange="this.form.submit()" style="width: auto;">
+            {% for y in range(2019, 2024) %}
+            <option value="{{ y }}" {% if selected_year == y|string %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+      <div class="card-body">
+        <div id="west-java-map-container" class="position-relative">
+          <div id="west-java-map" data-prosperity='{{ region_prosperity_json }}'></div>
+          <div class="map-loading d-none">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading map data...</p>
+          </div>
+        </div>
+        <p class="text-muted text-center mt-2">
+          <i class="fas fa-info-circle me-1"></i> Hover over regions to see prosperity classification. Click to zoom.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row">
   <div class="col-12">
     <div class="card">
       <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-        <h4 class="mb-0">Prosperity Classification Results</h4>
+        <h4 class="mb-0">Ringkasan Hasil Klasifikasi</h4>
         <form method="GET" action="{{ url_for('dashboard.index') }}" class="d-flex align-items-center">
-          <label for="year" class="text-white me-2">Year:</label>
-          <select class="form-select form-select-sm" id="year" name="year" onchange="this.form.submit()" style="width: auto;">
-            <!-- <option value="all" {% if selected_year == 'all' %}selected{% endif %}>All Years</option> -->
+          <label for="summary-year" class="text-white me-2">Tahun:</label>
+          <select class="form-select form-select-sm" id="summary-year" name="year" onchange="this.form.submit()" style="width: auto;">
             {% for y in range(2019, 2024) %}
             <option value="{{ y }}" {% if selected_year == y|string %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
@@ -92,11 +134,7 @@ endblock %} {% block content %}
                   {{ prediction_stats.classes.Sejahtera.count if 'Sejahtera' in
                   prediction_stats.classes else 0 }}
                 </h2>
-                <p class="lead">
-                  {{
-                  "%.1f"|format(prediction_stats.classes.Sejahtera.percentage)
-                  if 'Sejahtera' in prediction_stats.classes else 0 }}%
-                </p>
+                <p class="lead">Wilayah</p>
               </div>
             </div>
           </div>
@@ -108,10 +146,7 @@ endblock %} {% block content %}
                   {{ prediction_stats.classes.Menengah.count if 'Menengah' in
                   prediction_stats.classes else 0 }}
                 </h2>
-                <p class="lead">
-                  {{ "%.1f"|format(prediction_stats.classes.Menengah.percentage)
-                  if 'Menengah' in prediction_stats.classes else 0 }}%
-                </p>
+                <p class="lead">Wilayah</p>
               </div>
             </div>
           </div>
@@ -123,26 +158,20 @@ endblock %} {% block content %}
                   {{ prediction_stats.classes['Tidak Sejahtera'].count if 'Tidak
                   Sejahtera' in prediction_stats.classes else 0 }}
                 </h2>
-                <p class="lead">
-                  {{ "%.1f"|format(prediction_stats.classes['Tidak
-                  Sejahtera'].percentage) if 'Tidak Sejahtera' in
-                  prediction_stats.classes else 0 }}%
-                </p>
+                <p class="lead">Wilayah</p>
               </div>
             </div>
           </div>
         </div>
         <div class="text-center mt-3">
           <p class="lead">
-            Total regions evaluated: {{ prediction_stats.total }}
-            {% if selected_year != 'all' %} for year {{ selected_year }}{% endif %}
+            Total wilayah yang dievaluasi: {{ prediction_stats.total }}
+            {% if selected_year != 'all' %} untuk tahun {{ selected_year }}{% endif %}
           </p>
           <p>
-            {% if best_model %} Based on best model: {{
-            best_model.model_type|replace('_', ' ')|title }} (determined using
-            accuracy: {{ "%.2f"|format(best_model.accuracy * 100) }}%, last
-            trained at: {{ best_model.created_at.strftime('%Y-%m-%d %H:%M') }})
-            {% else %} No model information available. {% endif %}
+            {% if best_model %} Berdasarkan model terbaik: {{
+            best_model.model_type|replace('_', ' ')|title }} (ditentukan menggunakan metriks akurasi: {{ "%.2f"|format(best_model.accuracy * 100) }}%, terakhir dilatih pada: {{ best_model.created_at.strftime('%Y-%m-%d %H:%M') }})
+            {% else %} Tidak ada informasi model yang tersedia. {% endif %}
           </p>
         </div>
       </div>
@@ -154,12 +183,11 @@ endblock %} {% block content %}
   <div class="col-12">
     <div class="card">
       <div class="card-header bg-warning text-dark">
-        <h4 class="mb-0">No Prediction Data Available</h4>
+        <h4 class="mb-0">Data Prediksi Tidak Tersedia</h4>
       </div>
       <div class="card-body">
         <p class="lead">
-          There are no prediction results available yet. Please add indicator
-          data and train a model to see results.
+          Data prediksi belum tersedia. Silakan tambahkan data indikator dan latih model untuk melihat hasil prediksi.
         </p>
         {% if current_user.is_admin %}
         <div class="text-center">
@@ -175,4 +203,14 @@ endblock %} {% block content %}
     </div>
   </div>
 </div>
-{% endif %} {% endblock %}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+        crossorigin=""></script>
+<!-- Custom Map JS -->
+<script src="{{ url_for('static', filename='js/west_java_map.js') }}"></script>
+{% endblock %}

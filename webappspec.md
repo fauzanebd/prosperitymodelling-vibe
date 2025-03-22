@@ -254,7 +254,7 @@ A Flask web application for visualizing and analyzing prosperity indicators acro
    - Shows high-level metrics
    - Provides navigation to detailed views
 
-### 3. Dataset Management
+### 3. Manajemen Data
 
 #### Routes
 

@@ -29,8 +29,8 @@ def init_db():
             admin.set_password('admin123')
             
             # Create regular user
-            user = User(username='user', is_admin=False)
-            user.set_password('user123')
+            user = User(username='pengunjung', is_admin=False)
+            user.set_password('pengunjung123')
             
             db.session.add_all([admin, user])
             db.session.commit()

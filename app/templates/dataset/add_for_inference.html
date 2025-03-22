@@ -28,7 +28,7 @@ Analysis{% endblock %} {% block content %}
     >
       <div class="row mb-3">
         <div class="col-md-6">
-          <label for="region" class="form-label">Region</label>
+          <label for="region" class="form-label">Wilayah</label>
           <input
             type="text"
             class="form-control"
@@ -37,7 +37,7 @@ Analysis{% endblock %} {% block content %}
             required
           />
           <div class="form-text">
-            Enter the name of the new region you want to analyze.
+            Masukkan nama wilayah yang ingin Anda analisis.
           </div>
         </div>
         <div class="col-md-6">
@@ -59,7 +59,7 @@ Analysis{% endblock %} {% block content %}
 
       <div class="card mb-3">
         <div class="card-header bg-info text-white">
-          <h5 class="mb-0">Indicator Values</h5>
+          <h5 class="mb-0">Nilai Indikator</h5>
         </div>
         <div class="card-body">
           <div class="row">
@@ -138,7 +138,7 @@ Analysis{% endblock %} {% block content %}
 
         if (!region || !year) {
           e.preventDefault();
-          alert("Please fill both Region and Year fields");
+          alert("Tolong isi kedua kolom wilayah dan tahun");
         }
       });
     }

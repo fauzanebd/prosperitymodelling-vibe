@@ -1,5 +1,5 @@
-{% extends 'base.html' %} {% block title %}Train Models - Prosperity Analysis{%
-endblock %} {% block content %}
+{% extends 'base.html' %} {% block title %}Train Models - Sejahteraku{% endblock
+%} {% block content %}
 <div class="card">
   <div class="card-header bg-primary text-white">
     <h4 class="mb-0">Train Machine Learning Models</h4>
@@ -7,21 +7,19 @@ endblock %} {% block content %}
   <div class="card-body">
     <div class="alert alert-info">
       <p>
-        This will train both Random Forest and Logistic Regression models using
-        the current dataset.
+        Proses ini akan melatih model Random Forest dan Logistic Regression
+        menggunakan dataset saat ini.
       </p>
-      <p>The training process may take a few moments to complete.</p>
       <p>
-        <strong>Note:</strong> This process will keep only the 2 most recent
-        models of each type and delete older models to ensure optimal
-        performance.
+        Proses pelatihan mungkin memerlukan beberapa saat untuk selesai.
+        <strong>Jangan tutup halaman ini selama proses berlangsung.</strong>
       </p>
     </div>
 
     <form method="POST" action="{{ url_for('dataset.train_models') }}">
       <div class="d-grid gap-2">
         <button type="submit" class="btn btn-primary btn-lg">
-          <i class="fas fa-cogs me-2"></i> Train Models
+          <i class="fas fa-cogs me-2"></i> Latih Model
         </button>
       </div>
     </form>

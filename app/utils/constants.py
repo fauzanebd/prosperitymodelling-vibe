@@ -26,11 +26,11 @@ MODEL_TYPES = {
 
 # Visualization types
 VISUALIZATION_TYPES = {
-    'distribution': 'Distribution',
-    'trend': 'Trend Over Time',
-    'regional_comparison': 'Regional Comparison',
-    'prosperity_distribution': 'Prosperity Distribution',
-    'prosperity_trend': 'Prosperity Trend'
+    'distribution': 'Distribusi',
+    'trend': 'Trend',
+    'regional_comparison': 'Perbandingan Regional',
+    'prosperity_distribution': 'Distribusi Kesejahteraan',
+    'prosperity_trend': 'Trend Kesejahteraan'
 }
 
 # Pagination
