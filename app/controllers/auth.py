@@ -24,7 +24,15 @@ def create_default_user():
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    # Always redirect to dashboard with auto-login
+    # If already logged in, just redirect to dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard.index'))
+    
+    # Auto-login as regular user
+    user = User.query.filter_by(username='pengunjung', is_admin=False).first()
+    if user:
+        login_user(user)
+    
     return redirect(url_for('dashboard.index'))
 
 @auth_bp.route('/switch-to-admin', methods=['GET', 'POST'])
@@ -58,15 +66,24 @@ def switch_to_user():
         flash('Akun pengguna tidak ditemukan.', 'error')
     return redirect(url_for('dashboard.index'))
 
+@auth_bp.route('/session-check')
+def session_check():
+    """Debug endpoint to check session state"""
+    is_auth = current_user.is_authenticated
+    username = current_user.username if is_auth else None
+    return {
+        'authenticated': is_auth,
+        'username': username,
+        'endpoint': request.endpoint
+    }
+
 # Register the create functions to be called when the app starts
 @auth_bp.before_app_request
 def init_user_accounts():
-    if not getattr(init_user_accounts, '_is_initialized', False):
-        create_default_user()
-        init_user_accounts._is_initialized = True
-        
-        # Auto-login for non-authenticated users
-        if not current_user.is_authenticated and request.endpoint != 'static':
-            default_user = User.query.filter_by(username='pengunjung', is_admin=False).first()
-            if default_user:
-                login_user(default_user) 
+    create_default_user()
+    
+    # Auto-login for non-authenticated users
+    if not current_user.is_authenticated and request.endpoint != 'static':
+        default_user = User.query.filter_by(username='pengunjung', is_admin=False).first()
+        if default_user:
+            login_user(default_user) 

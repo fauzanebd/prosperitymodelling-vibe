@@ -29,6 +29,7 @@ def create_app(config=None):
     login_manager.init_app(app)
     login_manager.login_view = 'dashboard.index'
     login_manager.login_message = None  # Remove login message for auto-login
+    login_manager.session_protection = None  # Disable advanced session protection for auto-login
     
     # Register blueprints
     from app.controllers.auth import auth_bp
