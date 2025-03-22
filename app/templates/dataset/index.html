@@ -10,17 +10,17 @@
         <div>
             <div class="dropdown d-inline-block">
                 <button class="btn btn-light dropdown-toggle" type="button" id="addDataDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-plus"></i> Add Data
+                    <i class="fas fa-plus"></i> Tambahkan Data
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="addDataDropdown">
                     <li>
                         <a class="dropdown-item" href="{{ url_for('dataset.add_for_inference') }}">
-                            <i class="fas fa-brain"></i> Add Data for Inference
+                            <i class="fas fa-brain"></i> Tambahkan Data untuk Inferensi
                         </a>
                     </li>
                     <li>
                         <a class="dropdown-item" href="{{ url_for('dataset.add_for_training') }}">
-                            <i class="fas fa-cogs"></i> Add Data for Training
+                            <i class="fas fa-cogs"></i> Tambahkan Data untuk Pelatihan
                         </a>
                     </li>
                 </ul>
