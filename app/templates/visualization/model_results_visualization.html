@@ -8,95 +8,7 @@
 {% endblock %}
 
 {% block content %}
-<!-- Prosperity Classification Results -->
-{% if prediction_stats %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">Ringkasan Hasil Klasifikasi Kesejahteraan</h4>
-                <div class="d-flex align-items-center">
-                    <span class="badge bg-light text-dark me-2">
-                        {% if prediction_type == 'predicted' %}
-                            Prediksi Model
-                        {% else %}
-                            Klasifikasi Aktual
-                        {% endif %}
-                    </span>
-                    <form method="GET" action="{{ url_for('visualization.model_results_visualization') }}" class="d-flex align-items-center">
-                        <input type="hidden" name="viz_type" value="{{ viz_type }}">
-                        {% if selected_region %}
-                        <input type="hidden" name="region" value="{{ selected_region }}">
-                        {% endif %}
-                        
-                        <div class="d-flex align-items-center me-2">
-                            <label for="prediction_type" class="text-white me-2">Jenis:</label>
-                            <select class="form-select form-select-sm" id="prediction_type" name="prediction_type" onchange="this.form.submit()" style="width: auto;">
-                                <option value="predicted" {% if prediction_type == 'predicted' %}selected{% endif %}>Prediksi</option>
-                                <option value="actual" {% if prediction_type == 'actual' %}selected{% endif %}>Aktual</option>
-                            </select>
-                        </div>
-                        
-                        <div class="d-flex align-items-center">
-                            <label for="filter_year" class="text-white me-2">Year:</label>
-                            <select class="form-select form-select-sm" id="filter_year" name="filter_year" onchange="this.form.submit()" style="width: auto;">
-                                {% for y in range(2019, 2024) %}
-                                <option value="{{ y }}" {% if y|string == filter_year %}selected{% endif %}>{{ y }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="card bg-success text-white mb-3">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Daerah Sejahtera</h5>
-                                <h2 class="display-4">{{ prediction_stats.classes.Sejahtera.count if 'Sejahtera' in prediction_stats.classes else 0 }}</h2>
-                                <p class="lead">Wilayah</p>
-                                <!-- <p class="lead">{{ "%.1f"|format(prediction_stats.classes.Sejahtera.percentage) if 'Sejahtera' in prediction_stats.classes else 0 }}%</p> -->
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-warning text-dark mb-3">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Daerah Menengah</h5>
-                                <h2 class="display-4">{{ prediction_stats.classes.Menengah.count if 'Menengah' in prediction_stats.classes else 0 }}</h2>
-                                <p class="lead">Wilayah</p>
-                                <!-- <p class="lead">{{ "%.1f"|format(prediction_stats.classes.Menengah.percentage) if 'Menengah' in prediction_stats.classes else 0 }}%</p> -->
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-danger text-white mb-3">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Daerah Tidak Sejahtera</h5>
-                                <h2 class="display-4">{{ prediction_stats.classes['Tidak Sejahtera'].count if 'Tidak Sejahtera' in prediction_stats.classes else 0 }}</h2>
-                                <p class="lead">Wilayah</p>
-                                <!-- <p class="lead">{{ "%.1f"|format(prediction_stats.classes['Tidak Sejahtera'].percentage) if 'Tidak Sejahtera' in prediction_stats.classes else 0 }}%</p> -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center mt-3">
-                    <p class="lead">
-                        Total wilayah yang dievaluasi: {{ prediction_stats.total }}
-                        {% if filter_year != 'all' %} untuk tahun {{ filter_year }}{% endif %}
-                    </p>
-                    <p>
-                        {% if best_model %} Berdasarkan model terbaik: {{
-                        best_model.model_type|replace('_', ' ')|title }} (ditentukan menggunakan metriks akurasi: {{ "%.2f"|format(best_model.accuracy * 100) }}%, terakhir dilatih pada: {{ best_model.created_at.strftime('%Y-%m-%d %H:%M') }})
-                        {% else %} Tidak ada informasi model yang tersedia. {% endif %}
-                      </p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% else %}
+{% if prediction_stats == none %}
 <!-- Data Prediksi Tidak Tersedia -->
 <div class="row mb-4">
   <div class="col-12">
@@ -130,7 +42,40 @@
         <h4 class="mb-0">Visualisasi Hasil Model</h4>
     </div>
     <div class="card-body">
-        <form method="GET" action="{{ url_for('visualization.model_results_visualization') }}" id="visualization-form">
+        <form method="GET" action="{{ url_for('visualization.model_results_visualization') }}" id="visualization-form">            
+            <!-- Model Type Selection -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Pilih Model</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <label for="model_type" class="form-label">Jenis Model</label>
+                                    <select class="form-select" id="model_type" name="model_type" onchange="this.form.submit()">
+                                        {% for model_key, model_name in model_types.items() %}
+                                        <option value="{{ model_key }}" {% if model_key == model_type %}selected{% endif %}>{{ model_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                {% if selected_model %}
+                                <div class="col-md-8">
+                                    <div class="alert alert-info mb-0">
+                                        <strong>Model Terpilih:</strong> {{ selected_model.model_type|replace('_', ' ')|title }} 
+                                        (Akurasi: {{ "%.2f"|format(selected_model.accuracy * 100) }}%, 
+                                        Terakhir dilatih: {{ selected_model.created_at.strftime('%Y-%m-%d %H:%M') }})
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Visualization Type Selection -->
             <div class="row mb-3">
                 <div class="col-md-12">
@@ -265,7 +210,7 @@
                                     </span>
                                 </div>
                                 <p class="lead">Prediction Confidence: {{ "%.1f"|format(prediction_probability * 100) }}%</p>
-                                <p class="text-muted">diprediksi menggunakan {{ best_model.model_type|replace('_', ' ')|title }}</p>
+                                <p class="text-muted">diprediksi menggunakan {{ selected_model.model_type|replace('_', ' ')|title }}</p>
                             {% else %}
                                 <div class="alert alert-warning">
                                     Tidak ada prediksi untuk wilayah ini dan tahun ini.
@@ -291,7 +236,7 @@
                                     <h6 class="card-title">{{ indicator.name|replace('_', ' ')|title }}</h6>
                                     <p class="card-text display-6">{{ "%.2f"|format(indicator.value) }}</p>
                                     {% if indicator.importance %}
-                                        <div class="progress" title="Feature importance: {{ "%.2f"|format(indicator.importance*100) }}%">
+                                        <div class="progress" title="Feature importance: {{ '%.2f'|format(indicator.importance*100) }}%">
                                             <div class="progress-bar bg-info" role="progressbar" style="width: {{ indicator.importance*100 }}%" 
                                                 aria-valuenow="{{ indicator.importance*100 }}" aria-valuemin="0" aria-valuemax="100">
                                             </div>
@@ -367,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle Plotly rendering
     let plotJsonData = null;
     {% if plot_json %}
-    plotJsonData = {{ plot_json|safe }};
+        plotJsonData = JSON.parse('{{ plot_json|safe }}');
     {% endif %}
     
     if (plotJsonData) {

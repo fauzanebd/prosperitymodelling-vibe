@@ -37,14 +37,14 @@
 
 {% if metrics %}
 <!-- Model Summary -->
-<div class="row mb-4">
+<!-- <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-info text-white">
                 <h4 class="mb-0">Ringkasan Model - {{ model_type|replace('_', ' ')|title }}</h4>
             </div>
             <div class="card-body">
-                <div class="row">
+                <div class="row"> -->
                     <!-- <div class="col-md-6">
                         <h5>Parameter Model</h5>
                         <table class="table table-bordered">
@@ -58,7 +58,7 @@
                             </tbody>
                         </table>
                     </div> -->
-                    <div class="col-md-6">
+                    <!-- <div class="col-md-6">
                         <h5>Detail Hasil Pelatihan</h5>
                         <table class="table table-bordered">
                             <tbody>
@@ -89,14 +89,67 @@
             </div>
         </div>
     </div>
+</div> -->
+
+<!-- Cross-Validation Scores -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Hasil Cross-Validation (10-fold)</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- <div class="col-md">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Mean CV Accuracy</h5>
+                                <h2 class="display-4">{{ "%.2f"|format(metrics.mean_cv_accuracy * 100) }}%</h2>
+                            </div>
+                        </div>
+                    </div> -->
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Waktu Pelatihan</h5>
+                                <h2 class="display-4">{{ "%.2f"|format(metrics.training_time) }} s</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Akurasi pada Data Uji</h5>
+                                <h2 class="display-4">{{ "%.2f"|format(metrics.test_accuracy * 100) }}%</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Jumlah Fold</h5>
+                                <h2 class="display-4">10</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div id="cv-scores-plot" style="width: 100%; min-height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
 
 <!-- Performance Metrics -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-success text-white">
-                <h4 class="mb-0">Metrik Performa - {{ model_type|replace('_', ' ')|title }} 
+                <h4 class="mb-0">Confusion Matrix - {{ model_type|replace('_', ' ')|title }} 
                     {% if evaluation_year != 'all' %}({{ evaluation_year }}){% else %}(Semua Tahun){% endif %}
                 </h4>
             </div>
@@ -141,7 +194,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="row mt-3">
+                <!-- <div class="row mt-3">
                     <div class="col-md-6">
                         <div class="card bg-light mb-3">
                             <div class="card-body text-center">
@@ -164,79 +217,49 @@
                             </div>
                         </div>
                     </div>
+                </div> -->
+                <div class="row mt-3 justify-content-center">
+                    {% if confusion_matrix_json %}
+                    <div class="col-md-8">
+                        <div id="confusion-matrix-plot" style="width: 100%; min-height: 500px;"></div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Data confusion matrix tidak tersedia.
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Cross-Validation Scores -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h4 class="mb-0">Hasil Cross-Validation (10-fold)</h4>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md">
-                        <div class="card bg-light mb-3">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Mean CV Accuracy</h5>
-                                <h2 class="display-4">{{ "%.2f"|format(metrics.mean_cv_accuracy * 100) }}%</h2>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- <div class="col-md-6">
-                        <div class="card bg-light mb-3">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Standard Deviation</h5>
-                                <h2 class="display-4">{{ "%.2f"|format(metrics.std_cv_accuracy * 100) }}%</h2>
-                            </div>
-                        </div>
-                    </div> -->
-                </div>
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <div id="cv-scores-plot" style="width: 100%; min-height: 350px;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Visualizations -->
 <div class="row">
     <!-- Confusion Matrix -->
-    <div class="col-md-6 mb-4">
+    <!-- <div class="col-md-6 mb-4">
         <div class="card">
             <div class="card-header bg-info text-white">
                 <h4 class="mb-0">Confusion Matrix {% if evaluation_year != 'all' %}({{ evaluation_year }}){% endif %}</h4>
             </div>
             <div class="card-body d-flex justify-content-center">
-                {% if confusion_matrix_json %}
-                <div id="confusion-matrix-plot" style="width: 100%; min-height: 500px;"></div>
-                {% else %}
-                <div class="alert alert-warning">
-                    Data confusion matrix tidak tersedia.
-                </div>
-                {% endif %}
+                
             </div>
         </div>
-    </div>
+    </div> -->
     <!-- Feature Importance -->
-    <div class="col-md-6 mb-4">
+    <div class="col-12 mb-4">
         <div class="card">
-            <div class="card-header bg-info text-white">
-                <h4 class="mb-0">Feature Importance</h4>
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Tingkat Kepentingan Fitur</h4>
             </div>
             <div class="card-body d-flex justify-content-center">
                 {% if feature_importance_json %}
                 <div id="feature-importance-plot" style="width: 100%; min-height: 500px;"></div>
                 {% else %}
                 <div class="alert alert-warning">
-                    Data feature importance tidak tersedia.
+                    Data tingkat kepentingan fitur tidak tersedia.
                 </div>
                 {% endif %}
             </div>

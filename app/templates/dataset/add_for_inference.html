@@ -41,7 +41,7 @@ Sejahteraku{% endblock %} {% block content %}
           </div>
         </div>
         <div class="col-md-6">
-          <label for="year" class="form-label">Year</label>
+          <label for="year" class="form-label">Tahun</label>
           <select
             class="form-select"
             id="year"
@@ -49,8 +49,8 @@ Sejahteraku{% endblock %} {% block content %}
             required
             onchange="return false;"
           >
-            <option value="" selected disabled>Select a year</option>
-            {% for year in range(2019, 2024) %}
+            <option value="" selected disabled>Pilih tahun</option>
+            {% for year in range(2019, 2031) %}
             <option value="{{ year }}">{{ year }}</option>
             {% endfor %}
           </select>

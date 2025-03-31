@@ -296,7 +296,7 @@ def model_results_visualization():
     Generate model results visualization
     """
     # Get visualization type
-    viz_type = request.args.get('viz_type', 'prosperity_distribution')
+    viz_type = request.args.get('viz_type', 'prosperity_trend')
     
     # Get result year
     result_year = request.args.get('result_year', '2019')
@@ -313,16 +313,25 @@ def model_results_visualization():
     # Get prediction type for summary stats
     prediction_type = request.args.get('prediction_type', 'predicted')
     
+    # Get selected model type
+    model_type = request.args.get('model_type', 'random_forest')
+    
+    # Get available model types
+    model_types = {
+        'random_forest': 'Random Forest',
+        'logistic_regression': 'Logistic Regression'
+    }
+    
     # Get available visualization types
     viz_types = {
-        'prosperity_distribution': 'Perbandingan Distribusi Kesejahteraan Prediksi vs Aktual',
+        # 'prosperity_distribution': 'Perbandingan Distribusi Kesejahteraan Prediksi vs Aktual',
         'prosperity_trend': 'Perbandingan Tren Kesejahteraan Prediksi vs Aktual',
         'prosperity_comparison': 'Perbandingan Prediksi vs Data Aktual',
         'region_prediction': 'Prediksi Kesejahteraan tiap Wilayah'
     }
     
-    # Get the best model based on accuracy
-    best_model = TrainedModel.query.order_by(TrainedModel.accuracy.desc()).first()
+    # Get the best model of the selected type based on accuracy
+    selected_model = TrainedModel.query.filter_by(model_type=model_type).order_by(TrainedModel.accuracy.desc()).first()
     
     # Get regions with IPM data (training data)
     regions_with_ipm = db.session.query(IndeksPembangunanManusia.region).distinct().all()
@@ -339,10 +348,10 @@ def model_results_visualization():
     
     # Get prediction statistics if a model exists
     prediction_stats = None
-    if best_model:
-        # Get predictions using the best model for training regions only
+    if selected_model:
+        # Get predictions using the selected model for training regions only
         query = RegionPrediction.query.filter(
-            RegionPrediction.model_id == best_model.id,
+            RegionPrediction.model_id == selected_model.id,
             RegionPrediction.region.in_(regions_with_ipm)
         )
         
@@ -377,14 +386,14 @@ def model_results_visualization():
     # Get unique regions for dropdown
     if viz_type == 'region_prediction':
         # Get unique regions from predictions
-        if best_model:
-            region_records = db.session.query(RegionPrediction.region).filter_by(model_id=best_model.id).distinct().all()
+        if selected_model:
+            region_records = db.session.query(RegionPrediction.region).filter_by(model_id=selected_model.id).distinct().all()
             regions = [r[0] for r in region_records]
     
     # Generate visualization based on type
-    if viz_type == 'prosperity_distribution' and best_model:
+    if viz_type == 'prosperity_distribution' and selected_model:
         # Get predictions
-        query = RegionPrediction.query.filter_by(model_id=best_model.id)
+        query = RegionPrediction.query.filter_by(model_id=selected_model.id)
         
         # Filter by year if specified
         if result_year != 'all':
@@ -418,9 +427,9 @@ def model_results_visualization():
             
             plot_json = generate_prosperity_distribution_plot(df)
     
-    elif viz_type == 'prosperity_trend' and best_model:
+    elif viz_type == 'prosperity_trend' and selected_model:
         # Get predictions
-        predictions = RegionPrediction.query.filter_by(model_id=best_model.id).all()
+        predictions = RegionPrediction.query.filter_by(model_id=selected_model.id).all()
         
         if predictions:
             # Get actual IPM data for the same regions and years
@@ -448,9 +457,9 @@ def model_results_visualization():
             
             plot_json = generate_prosperity_trend_plot(df)
             
-    elif viz_type == 'prosperity_comparison' and best_model:
+    elif viz_type == 'prosperity_comparison' and selected_model:
         # Get predictions
-        query = RegionPrediction.query.filter_by(model_id=best_model.id)
+        query = RegionPrediction.query.filter_by(model_id=selected_model.id)
         
         # Filter by year if specified
         if result_year != 'all':
@@ -479,10 +488,10 @@ def model_results_visualization():
                 df = pd.DataFrame(actual_data)
                 plot_json = generate_prosperity_comparison_plot(df)
     
-    elif viz_type == 'region_prediction' and best_model and selected_region:
+    elif viz_type == 'region_prediction' and selected_model and selected_region:
         # Get predictions for the selected region
         predictions = RegionPrediction.query.filter_by(
-            model_id=best_model.id, 
+            model_id=selected_model.id, 
             region=selected_region,
             year=int(result_year)
         ).first()
@@ -513,8 +522,8 @@ def model_results_visualization():
             
             # Get indicator values used for this prediction
             indicators_data = []
-            if best_model.feature_importance:
-                feature_importance = best_model.feature_importance
+            if selected_model.feature_importance:
+                feature_importance = selected_model.feature_importance
                 
                 # Check if feature_importance is a dictionary (could be a string for some models like logistic regression)
                 if isinstance(feature_importance, dict):
@@ -541,7 +550,7 @@ def model_results_visualization():
             
             # Generate historical trend plot for this region
             historical_predictions = RegionPrediction.query.filter_by(
-                model_id=best_model.id,
+                model_id=selected_model.id,
                 region=selected_region
             ).order_by(RegionPrediction.year).all()
             
@@ -675,6 +684,8 @@ def model_results_visualization():
     return render_template('visualization/model_results_visualization.html',
                           viz_type=viz_type,
                           viz_types=viz_types,
+                          model_type=model_type,
+                          model_types=model_types,
                           regions=regions,
                           selected_region=selected_region,
                           actual_ipm_value=actual_ipm_value,
@@ -684,7 +695,7 @@ def model_results_visualization():
                           indicators_data=indicators_data,
                           plot_json=plot_json,
                           prediction_stats=prediction_stats,
-                          best_model=best_model,
+                          selected_model=selected_model,
                           prediction_type=prediction_type,
                           filter_year=filter_year,
                           result_type=result_type,

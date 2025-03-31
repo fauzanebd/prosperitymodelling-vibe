@@ -30,7 +30,7 @@
                 <i class="fas fa-database fa-3x mb-3 text-primary"></i>
                 <h5 class="card-title">Manajemen Data</h5>
                 <p class="card-text">
-                  Lihat, tambah, dan ubah data indikator untuk berbagai wilayah.
+                  Lihat data indikator untuk berbagai wilayah.
                 </p>
                 <a href="{{ url_for('dataset.index') }}" class="btn btn-primary"
                   >Buka Manajemen Data</a
@@ -134,7 +134,10 @@
                   {{ prediction_stats.classes.Sejahtera.count if 'Sejahtera' in
                   prediction_stats.classes else 0 }}
                 </h2>
-                <p class="lead">Wilayah</p>
+                <p class="lead mb-0">Wilayah</p>
+                <p class="text-white-50">
+                  {{ "%.1f"|format(prediction_stats.classes.Sejahtera.percentage) if 'Sejahtera' in prediction_stats.classes else 0 }}%
+                </p>
               </div>
             </div>
           </div>
@@ -146,7 +149,10 @@
                   {{ prediction_stats.classes.Menengah.count if 'Menengah' in
                   prediction_stats.classes else 0 }}
                 </h2>
-                <p class="lead">Wilayah</p>
+                <p class="lead mb-0">Wilayah</p>
+                <p class="text-dark-50">
+                  {{ "%.1f"|format(prediction_stats.classes.Menengah.percentage) if 'Menengah' in prediction_stats.classes else 0 }}%
+                </p>
               </div>
             </div>
           </div>
@@ -158,7 +164,10 @@
                   {{ prediction_stats.classes['Tidak Sejahtera'].count if 'Tidak
                   Sejahtera' in prediction_stats.classes else 0 }}
                 </h2>
-                <p class="lead">Wilayah</p>
+                <p class="lead mb-0">Wilayah</p>
+                <p class="text-white-50">
+                  {{ "%.1f"|format(prediction_stats.classes['Tidak Sejahtera'].percentage) if 'Tidak Sejahtera' in prediction_stats.classes else 0 }}%
+                </p>
               </div>
             </div>
           </div>

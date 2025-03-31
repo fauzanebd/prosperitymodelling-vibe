@@ -70,8 +70,8 @@ def generate_confusion_matrix_plot(cm):
         xaxis_title='Predicted',
         yaxis_title='Actual',
         xaxis=dict(side='bottom'),
-        width=600,
-        height=500
+        width=800,
+        height=800
     )
     
     return plotly_to_json(fig)
@@ -101,7 +101,7 @@ def generate_feature_importance_plot(feature_importance):
     
     # Format feature names for better readability
     df['Feature_Formatted'] = df['Feature'].apply(
-        lambda x: ' '.join(word.capitalize() for word in x.split('_'))
+        lambda x: ' '.join(word.capitalize() for word in x.split('_')) + '      '  # Add spacing after label
     )
 
     # drop year from feature_formatted
@@ -113,16 +113,14 @@ def generate_feature_importance_plot(feature_importance):
         x='Importance', 
         y='Feature_Formatted',
         orientation='h',
-        title='Feature Importance'
+        title='Tingkat Kepentingan Fitur'
     )
     
     # Update layout
     fig.update_layout(
         xaxis_title='Tingkat Kepentingan',
         yaxis_title='Fitur',
-        width=600,  # Adjust width to fit card better
-        height=600,
-        margin=dict(l=200, r=20, t=30, b=50),  # Increase left margin for labels
+        margin=dict(l=250, r=20, t=30, b=50),  # Increase left margin for labels
         autosize=True
     )
     
