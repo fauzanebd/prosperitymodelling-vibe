@@ -66,7 +66,7 @@ Sejahteraku{% endblock %} {% block content %}
             {% for indicator in indicators %}
             <div class="col-md-6 mb-3">
               <label for="value_{{ indicator }}" class="form-label"
-                >{{ indicator|replace('_', ' ')|title }} ({{
+                >{{ indicator|format_indicator }} ({{
                 INDICATOR_MODELS[indicator].unit }})</label
               >
               <input

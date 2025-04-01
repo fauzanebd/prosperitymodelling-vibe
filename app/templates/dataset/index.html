@@ -76,7 +76,7 @@
                                 <select id="indicator-select" class="form-select">
                                     {% for indicator in indicators %}
                                     <option value="{{ indicator }}" {% if indicator == selected_indicator %}selected{% endif %}>
-                                        {{ indicator|replace('_', ' ')|title }}
+                                        {{ indicator|format_indicator }}
                                     </option>
                                     {% endfor %}
                                 </select>
@@ -192,7 +192,7 @@
         <!-- Data Table -->
         <div class="card">
             <div class="card-header bg-success text-white">
-                <h5 class="mb-0">Data {{ selected_indicator|replace('_', ' ')|title }}</h5>
+                <h5 class="mb-0">Data {{ selected_indicator|format_indicator }}</h5>
             </div>
             <div class="card-body">
                 
@@ -275,7 +275,7 @@
                 {% endif %}
                 {% else %}
                 <div class="alert alert-warning">
-                    No data available for {{ selected_indicator|replace('_', ' ')|title }}.
+                    No data available for {{ selected_indicator|format_indicator }}.
                 </div>
                 {% endif %}
             </div>

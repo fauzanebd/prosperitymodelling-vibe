@@ -43,16 +43,16 @@
     </div>
     <div class="card-body">
         <form method="GET" action="{{ url_for('visualization.model_results_visualization') }}" id="visualization-form">            
-            <!-- Model Type Selection -->
+            <!-- Model Type and Visualization Type Selection -->
             <div class="row mb-3">
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header bg-info text-white">
-                            <h5 class="mb-0">Pilih Model</h5>
+                            <h5 class="mb-0">Pilihan Visualisasi</h5>
                         </div>
                         <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-md-4">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
                                     <label for="model_type" class="form-label">Jenis Model</label>
                                     <select class="form-select" id="model_type" name="model_type" onchange="this.form.submit()">
                                         {% for model_key, model_name in model_types.items() %}
@@ -61,34 +61,15 @@
                                     </select>
                                 </div>
                                 
-                                {% if selected_model %}
-                                <div class="col-md-8">
-                                    <div class="alert alert-info mb-0">
-                                        <strong>Model Terpilih:</strong> {{ selected_model.model_type|replace('_', ' ')|title }} 
-                                        (Akurasi: {{ "%.2f"|format(selected_model.accuracy * 100) }}%, 
-                                        Terakhir dilatih: {{ selected_model.created_at.strftime('%Y-%m-%d %H:%M') }})
-                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="viz_type" class="form-label">Jenis Visualisasi</label>
+                                    <select class="form-select" id="viz_type" name="viz_type" style="text-overflow: unset; white-space: normal;">
+                                        {% for viz_key, viz_name in viz_types.items() %}
+                                        <option value="{{viz_key}}" {% if viz_key == viz_type %}selected{% endif %}>{{viz_name}}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
-                                {% endif %}
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Visualization Type Selection -->
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header bg-info text-white">
-                            <h5 class="mb-0">Jenis Visualisasi</h5>
-                        </div>
-                        <div class="card-body">
-                            <select class="form-select" id="viz_type" name="viz_type" style="text-overflow: unset; white-space: normal;">
-                                {% for viz_key, viz_name in viz_types.items() %}
-                                <option value="{{viz_key}}" {% if viz_key == viz_type %}selected{% endif %}>{{viz_name}}</option>
-                                {% endfor %}
-                            </select>
                         </div>
                     </div>
                 </div>
@@ -233,7 +214,7 @@
                         <div class="col-md-4 mb-3">
                             <div class="card">
                                 <div class="card-body">
-                                    <h6 class="card-title">{{ indicator.name|replace('_', ' ')|title }}</h6>
+                                    <h6 class="card-title">{{ indicator.name|format_indicator }}</h6>
                                     <p class="card-text display-6">{{ "%.2f"|format(indicator.value) }}</p>
                                     {% if indicator.importance %}
                                         <div class="progress" title="Feature importance: {{ '%.2f'|format(indicator.importance*100) }}%">

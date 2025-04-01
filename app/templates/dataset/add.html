@@ -12,7 +12,7 @@ endblock %} {% block content %}
           <option value="" selected disabled>Select an indicator</option>
           {% for indicator in indicators %}
           <option value="{{ indicator }}">
-            {{ indicator|replace('_', ' ')|title }}
+            {{ indicator|format_indicator }}
           </option>
           {% endfor %}
         </select>

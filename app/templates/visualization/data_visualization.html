@@ -30,7 +30,7 @@
                                     <select class="form-select" id="indicator" name="indicator">
                                         {% for indicator in indicators %}
                                         <option value="{{ indicator }}" {% if indicator == selected_indicator %}selected{% endif %}>
-                                            {{ indicator|replace('_', ' ')|title }}
+                                            {{ indicator|format_indicator }}
                                         </option>
                                         {% endfor %}
                                     </select>
@@ -63,7 +63,7 @@
         <div class="card">
             <div class="card-header bg-info text-white">
                 <h4 class="mb-0">
-                    Trend Label {{ selected_indicator|replace('_', ' ')|title }}
+                    Trend Label {{ selected_indicator|format_indicator }}
                 </h4>
             </div>
             <div class="card-body d-flex justify-content-center">
@@ -83,7 +83,7 @@
         <div class="card">
             <div class="card-header bg-info text-white">
                 <h4 class="mb-0">
-                    Distribusi Label {{ selected_indicator|replace('_', ' ')|title }} ({{ year }})
+                    Distribusi Label {{ selected_indicator|format_indicator }} ({{ year }})
                 </h4>
             </div>
             <div class="card-body d-flex justify-content-center">
@@ -98,6 +98,15 @@
         </div>
     </div>
 </div>
+
+<!-- Render data for JavaScript access -->
+{% if label_trend_plot_json %}
+<script id="trend-data" type="application/json">{{ label_trend_plot_json|safe }}</script>
+{% endif %}
+
+{% if label_distribution_plot_json %}
+<script id="distribution-data" type="application/json">{{ label_distribution_plot_json|safe }}</script>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -120,22 +129,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Handle Plotly rendering for label trend
-    let labelTrendJsonData = null;
-    {% if label_trend_plot_json %}
-    labelTrendJsonData = {{ label_trend_plot_json|safe }};
-    {% endif %}
-    
-    if (labelTrendJsonData) {
+    const trendDataElement = document.getElementById('trend-data');
+    if (trendDataElement) {
+        const labelTrendJsonData = JSON.parse(trendDataElement.textContent);
         Plotly.newPlot('label-trend-plot', labelTrendJsonData);
     }
     
     // Handle Plotly rendering for label distribution
-    let labelDistJsonData = null;
-    {% if label_distribution_plot_json %}
-    labelDistJsonData = {{ label_distribution_plot_json|safe }};
-    {% endif %}
-    
-    if (labelDistJsonData) {
+    const distributionDataElement = document.getElementById('distribution-data');
+    if (distributionDataElement) {
+        const labelDistJsonData = JSON.parse(distributionDataElement.textContent);
         Plotly.newPlot('label-distribution-plot', labelDistJsonData);
     }
 });

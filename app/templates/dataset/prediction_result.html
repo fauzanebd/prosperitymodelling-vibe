@@ -73,7 +73,7 @@ Analysis{% endblock %} {% block content %}
             <tbody>
               {% for indicator, data in indicator_values.items() %}
               <tr>
-                <td>{{ indicator|replace('_', ' ')|title }}</td>
+                <td>{{ indicator|format_indicator }}</td>
                 <td>{{ "%.2f"|format(data.value) }}</td>
                 <td>{{ data.unit }}</td>
                 <td>
