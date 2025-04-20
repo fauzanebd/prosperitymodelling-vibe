@@ -2376,7 +2376,10 @@ cv_scores = cross_val_score(rf_classifier, model_data['X_train'], model_data['y_
 print(f"Cross-validation scores: {cv_scores}")
 print(f"Mean CV accuracy: {cv_scores.mean():.4f}")
 print(f"Standard deviation: {cv_scores.std():.4f}")
-
+    
+# Store cross-validation scores for visualization later
+rf_cv_accuracy_scores = cv_scores
+    
 # Get predictions for each fold
 y_pred_cv = cross_val_predict(rf_classifier, model_data['X_train'], model_data['y_train'], cv=kf)
 
@@ -2395,6 +2398,8 @@ plt.ylabel('True')
 plt.title('Confusion Matrix (Cross-Validation)')
 plt.tight_layout()
 plt.show()
+
+
 
 # Train the final model on the entire training set
 print("\nTraining the final Random Forest model on the entire training set...")
@@ -2511,6 +2516,9 @@ try:
     print(f"Cross-validation scores: {lr_cv_scores}")
     print(f"Mean CV accuracy: {lr_cv_scores.mean():.4f}")
     print(f"Standard deviation: {lr_cv_scores.std():.4f}")
+    
+    # Store cross-validation scores for visualization
+    lr_cv_accuracy_scores = lr_cv_scores
     
     # Get predictions for each fold
     lr_y_pred_cv = cross_val_predict(lr_classifier, X_train, y_train, cv=kf)
@@ -2657,7 +2665,47 @@ lr_results = {
     'feature_importances': coef_importance_df
 }
 
-print("\nLogistic Regression model training completed.")
+print("Logistic Regression model training completed.")
+
+# Visualize K-fold cross-validation results for both models
+print("\nVisualizing K-fold cross-validation results...")
+try:
+    # Create a dataframe to store the cross-validation scores
+    cv_results = pd.DataFrame({
+        'fold': [f'fold {i+1}' for i in range(k_folds)],
+        'Random Forest': rf_cv_accuracy_scores,
+        'Logistic Regression': lr_cv_accuracy_scores
+    })
+    
+    # Plot the cross-validation scores with horizontal bars
+    plt.figure(figsize=(12, 8))
+    
+    # Bar chart for each fold (horizontal)
+    bar_height = 0.35
+    y = np.arange(k_folds)
+    
+    # Plot horizontal bars
+    plt.barh(y, cv_results['Random Forest'], height=bar_height, label='Random Forest', color='#ff7f0e')
+    plt.barh(y + bar_height, cv_results['Logistic Regression'], height=bar_height, label='Logistic Regression', color='#1f77b4')
+    
+    # Add accuracy values at the end of each bar
+    for i, v in enumerate(cv_results['Random Forest']):
+        plt.text(v + 0.01, i, f'{v:.4f}', va='center')
+    
+    for i, v in enumerate(cv_results['Logistic Regression']):
+        plt.text(v + 0.01, i + bar_height, f'{v:.4f}', va='center')
+    
+    plt.ylabel('Fold')
+    plt.xlabel('Accuracy')
+    plt.title('Cross Validation')
+    plt.yticks(y + bar_height / 2, cv_results['fold'])
+    plt.xlim(0.7, 1.0)  # Adjusted to max scale of 1.0
+    plt.legend(loc='lower right')
+    plt.grid(axis='x', alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+except Exception as e:
+    print(f"Error visualizing cross-validation results: {e}")
 
 
 #%% [markdown]
@@ -2719,6 +2767,38 @@ def plot_confusion_matrix_with_percentages(cm, classes, title, cmap=plt.cm.Blues
 
 # Get class names
 class_names = np.unique(model_data['y_test'])
+
+# Compare model accuracies
+print("\nComparing model accuracies...")
+try:
+    # Create a dataframe to store the accuracies
+    accuracy_comparison = pd.DataFrame({
+        'Model': ['Logistic Regression', 'Random Forest'],
+        'Accuracy': [lr_results['test_accuracy'], rf_results['test_accuracy']]
+    })
+    
+    # Plot the accuracies
+    plt.figure(figsize=(10, 6))
+    
+    # Bar chart for model accuracies
+    plt.bar(['Logistic Regression', 'Random Forest'], 
+            [lr_results['test_accuracy'], rf_results['test_accuracy']], 
+            color=['#1f77b4', '#ff7f0e'], width=0.4)
+    
+    plt.xlabel('Akurasi')
+    plt.ylabel('')
+    plt.title('Confusion Matrix')
+    plt.ylim(0.75, 0.95)  # Adjusted to match the image
+    
+    # Add accuracy values on top of bars
+    for i, v in enumerate([lr_results['test_accuracy'], rf_results['test_accuracy']]):
+        plt.text(i, v + 0.01, f'{v:.4f}', ha='center', va='bottom')
+    
+    plt.grid(axis='y', alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+except Exception as e:
+    print(f"Error comparing model accuracies: {e}")
 
 # Plot confusion matrices for both models
 print("\nConfusion Matrix Comparison:")

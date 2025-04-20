@@ -217,7 +217,7 @@ def add_for_inference():
                     db.session.commit()
                     
                     # Redirect to a new page to show the prediction result
-                    return redirect(url_for('dataset.prediction_result', region=region, year=year))
+                    return redirect(url_for('dataset.prediction_result', region=region, year=year, model_id=best_model.id))
             
             flash(f'Data for {region} in {year} added successfully, but prediction failed', 'warning')
         else:
@@ -228,14 +228,19 @@ def add_for_inference():
     return render_template('dataset/add_for_inference.html', indicators=indicators, INDICATOR_MODELS=INDICATOR_MODELS)
 
 @dataset_bp.route('/dataset/prediction_result/<region>/<int:year>')
+@dataset_bp.route('/dataset/prediction_result/<region>/<int:year>/<int:model_id>')
 @login_required
-def prediction_result(region, year):
-    """Show prediction result for a specific region and year"""
+def prediction_result(region, year, model_id=None):
+    """Show prediction result for a specific region and year, optionally filtered by model_id"""
     # Get the prediction for this region and year
     from app.models.predictions import RegionPrediction
     from app.models.ml_models import TrainedModel
     
-    prediction = RegionPrediction.query.filter_by(region=region, year=year).order_by(RegionPrediction.id.desc()).first()
+    # If model_id is provided, filter by it; otherwise, get the most recent prediction
+    if model_id:
+        prediction = RegionPrediction.query.filter_by(region=region, year=year, model_id=model_id).first()
+    else:
+        prediction = RegionPrediction.query.filter_by(region=region, year=year).order_by(RegionPrediction.id.desc()).first()
     
     if not prediction:
         flash(f'No prediction found for {region} in {year}', 'danger')
@@ -413,7 +418,7 @@ def add_for_training():
                 
                 if prediction:
                     # Redirect to the prediction result page
-                    return redirect(url_for('dataset.prediction_result', region=region, year=most_recent_year))
+                    return redirect(url_for('dataset.prediction_result', region=region, year=most_recent_year, model_id=best_model.id))
         else:
             flash(f'Data for {region} for all years added successfully but model training failed', 'warning')
         
