@@ -47,33 +47,191 @@ Pelatihan Model - Sejahteraku{% endblock %} {% block content %}
         </div>
       </div>
 
-      {% for year in range(2019, 2024) %}
-      <div class="card mb-3">
-        <div class="card-header bg-info text-white">
-          <h5 class="mb-0">{{ year }} Data</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            {% for indicator in indicators %}
-            <div class="col-md-6 mb-3">
-              <label for="value_{{ year }}_{{ indicator }}" class="form-label"
-                >{{ indicator|format_indicator }} ({{
-                INDICATOR_MODELS[indicator].unit }})</label
-              >
-              <input
-                type="number"
-                class="form-control"
-                id="value_{{ year }}_{{ indicator }}"
-                name="value_{{ year }}_{{ indicator }}"
-                step="0.01"
-                required
-              />
+      <!-- Year Navigation Tabs -->
+      <div class="year-tabs mb-4">
+        <div class="year-navigation-container">
+          <button type="button" class="btn btn-primary year-nav" id="prev-year" disabled>
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="year-selector">
+            {% for year in range(2019, 2024) %}
+            <div class="year-item {% if loop.first %}active{% endif %}" data-year="{{ year }}">
+              <span>{{ year }}</span>
             </div>
             {% endfor %}
           </div>
+          <button type="button" class="btn btn-primary year-nav" id="next-year">
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
-      {% endfor %}
+
+      <!-- Year Carousel Container -->
+      <div class="year-carousel-container">
+        <div class="year-carousel">
+          {% for year in range(2019, 2024) %}
+          <div class="year-slide {% if loop.first %}active{% endif %}" data-year="{{ year }}">
+            <div class="card mb-4">
+              <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ year }} Data</h5>
+                <span class="badge bg-primary">{{ loop.index }}/{{ range(2019, 2024)|length }}</span>
+              </div>
+              <div class="card-body">
+                <!-- Indicator Group Selector Cards -->
+                <div class="indicator-selector mb-4">
+                  <div class="row">
+                    <div class="col-md-3 mb-2">
+                      <div class="selector-card active" data-target="ekonomi-{{ year }}" style="background: linear-gradient(90deg, #20B2AA, #3CB371);">
+                        <div class="card-text">
+                          <div>Indikator</div>
+                          <div>Ekonomi</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                      <div class="selector-card" data-target="infrastruktur-{{ year }}" style="background: linear-gradient(90deg, #4169E1, #1E90FF);">
+                        <div class="card-text">
+                          <div>Indikator</div>
+                          <div>Infrastruktur</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                      <div class="selector-card" data-target="kesehatan-{{ year }}" style="background: linear-gradient(90deg, #FF6347, #FF4500);">
+                        <div class="card-text">
+                          <div>Indikator</div>
+                          <div>Kesehatan</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                      <div class="selector-card" data-target="pendidikan-{{ year }}" style="background: linear-gradient(90deg, #9370DB, #8A2BE2);">
+                        <div class="card-text">
+                          <div>Indikator</div>
+                          <div>Pendidikan</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Economic Indicators Card -->
+                <div class="indicator-group" id="ekonomi-{{ year }}">
+                  <div class="card border-0">
+                    <div class="card-body bg-light rounded">
+                      <div class="row">
+                        {% for indicator in indicators %}
+                          {% if indicator in ['indeks_pembangunan_manusia', 'tingkat_pengangguran_terbuka', 'pdrb_harga_konstan', 'penduduk_miskin', 'jml_pengeluaran_per_kapita', 'jml_penduduk_bekerja', 'daftar_upah_minimum'] %}
+                          <div class="col-md-6 mb-3">
+                            <label for="value_{{ year }}_{{ indicator }}" class="form-label"
+                              >{{ indicator|format_indicator }} ({{
+                              INDICATOR_MODELS[indicator].unit }})</label
+                            >
+                            <input
+                              type="number"
+                              class="form-control"
+                              id="value_{{ year }}_{{ indicator }}"
+                              name="value_{{ year }}_{{ indicator }}"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Infrastructure Indicators Card -->
+                <div class="indicator-group" id="infrastruktur-{{ year }}" style="display: none;">
+                  <div class="card border-0">
+                    <div class="card-body bg-light rounded">
+                      <div class="row">
+                        {% for indicator in indicators %}
+                          {% if indicator in ['sanitasi_layak', 'hunian_layak', 'akses_air_minum', 'kawasan_pariwisata', 'kendaraan_roda_2', 'kendaraan_roda_4', 'panjang_ruas_jalan', 'titik_layanan_internet'] %}
+                          <div class="col-md-6 mb-3">
+                            <label for="value_{{ year }}_{{ indicator }}" class="form-label"
+                              >{{ indicator|format_indicator }} ({{
+                              INDICATOR_MODELS[indicator].unit }})</label
+                            >
+                            <input
+                              type="number"
+                              class="form-control"
+                              id="value_{{ year }}_{{ indicator }}"
+                              name="value_{{ year }}_{{ indicator }}"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Health Indicators Card -->
+                <div class="indicator-group" id="kesehatan-{{ year }}" style="display: none;">
+                  <div class="card border-0">
+                    <div class="card-body bg-light rounded">
+                      <div class="row">
+                        {% for indicator in indicators %}
+                          {% if indicator in ['angka_harapan_hidup', 'fasilitas_kesehatan', 'kematian_balita', 'kematian_bayi', 'kematian_ibu', 'persentase_balita_stunting', 'imunisasi_dasar'] %}
+                          <div class="col-md-6 mb-3">
+                            <label for="value_{{ year }}_{{ indicator }}" class="form-label"
+                              >{{ indicator|format_indicator }} ({{
+                              INDICATOR_MODELS[indicator].unit }})</label
+                            >
+                            <input
+                              type="number"
+                              class="form-control"
+                              id="value_{{ year }}_{{ indicator }}"
+                              name="value_{{ year }}_{{ indicator }}"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Education Indicators Card -->
+                <div class="indicator-group" id="pendidikan-{{ year }}" style="display: none;">
+                  <div class="card border-0">
+                    <div class="card-body bg-light rounded">
+                      <div class="row">
+                        {% for indicator in indicators %}
+                          {% if indicator in ['angka_melek_huruf', 'angka_partisipasi_kasar_sd_mi_paket_a', 'angka_partisipasi_kasar_smp_mts_paket_b', 'angka_partisipasi_kasar_sma_ma_paket_c', 'angka_partisipasi_kasar_perguruan_tinggi', 'angka_partisipasi_murni_sd_mi_paket_a', 'angka_partisipasi_murni_smp_mts_paket_b', 'angka_partisipasi_murni_sma_ma_paket_c', 'angka_partisipasi_murni_perguruan_tinggi', 'rata_rata_lama_sekolah'] %}
+                          <div class="col-md-6 mb-3">
+                            <label for="value_{{ year }}_{{ indicator }}" class="form-label"
+                              >{{ indicator|format_indicator }} ({{
+                              INDICATOR_MODELS[indicator].unit }})</label
+                            >
+                            <input
+                              type="number"
+                              class="form-control"
+                              id="value_{{ year }}_{{ indicator }}"
+                              name="value_{{ year }}_{{ indicator }}"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
 
       <div class="d-flex justify-content-between">
         <a href="{{ url_for('dataset.index') }}" class="btn btn-secondary"
@@ -119,6 +277,258 @@ Pelatihan Model - Sejahteraku{% endblock %} {% block content %}
         true
       );
     });
+    
+    // Handle indicator group selector cards
+    document.querySelectorAll('.selector-card').forEach(card => {
+      card.addEventListener('click', function() {
+        // Get the year from the parent container
+        const yearContainer = this.closest('.card-body');
+        
+        // Remove active class from all selector cards in this year container
+        yearContainer.querySelectorAll('.selector-card').forEach(c => {
+          c.classList.remove('active');
+        });
+        
+        // Add active class to clicked card
+        this.classList.add('active');
+        
+        // Hide all indicator groups in this year container
+        yearContainer.querySelectorAll('.indicator-group').forEach(group => {
+          group.style.display = 'none';
+        });
+        
+        // Show the selected indicator group
+        const targetId = this.getAttribute('data-target');
+        const targetGroup = document.getElementById(targetId);
+        if (targetGroup) {
+          targetGroup.style.display = 'block';
+        }
+      });
+    });
+    
+    // Year Carousel Navigation
+    const yearSlides = document.querySelectorAll('.year-slide');
+    const yearItems = document.querySelectorAll('.year-item');
+    const prevYearBtn = document.getElementById('prev-year');
+    const nextYearBtn = document.getElementById('next-year');
+    const totalYears = yearSlides.length;
+    let currentYearIndex = 0;
+    
+    // Function to show a specific year slide
+    function showYearSlide(index) {
+      // Hide all year slides
+      yearSlides.forEach(slide => {
+        slide.classList.remove('active');
+        slide.style.display = 'none';
+      });
+      
+      // Remove active class from all year items
+      document.querySelectorAll('.year-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      
+      // Show the selected year slide
+      yearSlides[index].classList.add('active');
+      yearSlides[index].style.display = 'block';
+      
+      // Add active class to the corresponding year item
+      document.querySelectorAll('.year-item')[index].classList.add('active');
+      
+      // Update navigation button states
+      prevYearBtn.disabled = index === 0;
+      nextYearBtn.disabled = index === totalYears - 1;
+      
+      // Update current year index
+      currentYearIndex = index;
+    }
+    
+    // Initialize with the first year slide
+    showYearSlide(0);
+    
+    // Add click event listeners to year items
+    yearItems.forEach((item, index) => {
+      item.addEventListener('click', () => {
+        showYearSlide(index);
+      });
+    });
+    
+    // Add click event listeners to navigation buttons
+    prevYearBtn.addEventListener('click', () => {
+      if (currentYearIndex > 0) {
+        showYearSlide(currentYearIndex - 1);
+      }
+    });
+    
+    nextYearBtn.addEventListener('click', () => {
+      if (currentYearIndex < totalYears - 1) {
+        showYearSlide(currentYearIndex + 1);
+      }
+    });
+    
+    // Add keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' && currentYearIndex > 0) {
+        showYearSlide(currentYearIndex - 1);
+      } else if (e.key === 'ArrowRight' && currentYearIndex < totalYears - 1) {
+        showYearSlide(currentYearIndex + 1);
+      }
+    });
   });
 </script>
+<style>
+  /* Styling for the indicator group cards */
+  .card-header {
+    border-radius: 0.25rem 0.25rem 0 0;
+  }
+  .card.border-0 {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Selector card styling */
+  .selector-card {
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .card-text {
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  
+  .selector-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  }
+  
+  .selector-card.active {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    position: relative;
+  }
+  
+  .selector-card.active:after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    margin-left: -10px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid rgba(0,0,0,0.2);
+  }
+  
+  .indicator-group {
+    transition: all 0.3s ease;
+  }
+  
+  /* Year Carousel Styling */
+  .year-tabs {
+    margin-bottom: 30px;
+  }
+  
+  .year-navigation-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .year-selector {
+    display: flex;
+    justify-content: center;
+    background: #f0f7ff;
+    border-radius: 50px;
+    padding: 5px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    position: relative;
+    flex-grow: 1;
+    max-width: 400px;
+  }
+  
+  .year-item {
+    flex: 1;
+    text-align: center;
+    padding: 10px 5px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #6c757d;
+    cursor: pointer;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .year-item.active {
+    color: white;
+  }
+  
+  .year-item.active:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, #007bff, #00c6ff);
+    border-radius: 50px;
+    z-index: -1;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+  }
+  
+  .year-carousel-container {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .year-carousel {
+    position: relative;
+    width: 100%;
+  }
+  
+  .year-slide {
+    display: none;
+    transition: transform 0.5s ease;
+  }
+  
+  .year-slide.active {
+    display: block;
+  }
+  
+  .year-nav {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  }
+  
+  /* Add animation for slide transitions */
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  
+  .year-slide.active {
+    animation: slideIn 0.3s ease forwards;
+  }
+</style>
 {% endblock %}
